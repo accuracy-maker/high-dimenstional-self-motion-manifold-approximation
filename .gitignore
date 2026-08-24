@@ -1,0 +1,13 @@
+# VS Code
+.vscode/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# PyTorch checkpoints
+*.pt
+
+# Optional: OS/editor files
+.DS_Store
+Thumbs.db
