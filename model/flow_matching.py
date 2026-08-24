@@ -27,8 +27,8 @@ class FMConfig:
     # planar workspace position (x, y)
     x_dim: int = 2
 
-    Q_MIN: float = -math.pi
-    Q_MAX: float = math.pi
+    Q_MIN: float = -math.pi / 3
+    Q_MAX: float = math.pi / 3
 
     # maximum reach of 3R planar manipulator
     X_MAX: float = 3.0

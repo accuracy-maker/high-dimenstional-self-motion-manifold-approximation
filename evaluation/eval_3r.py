@@ -19,14 +19,24 @@ def evaluate(cfg: FMConfig):
 
     # sampling
     data = np.load(cfg.dataset_path)
-    x = np.array([2, 2])
+    # x = np.array([1, 1/2])
+    x = data['ps'][10]
     print(f"target postion: {x}")
-    qs = fm.sample(x, n_samples=100)
+    qs = fm.sample(x, n_samples=1000, n_steps=100)
     print("sampling qs:\n")
     print(qs)
 
+
+    # eval
+    errors = np.linalg.norm(robot.fkine(qs).t[:,:2] - x[None, :], axis=1)
+
+    print("Mean FK error:", errors.mean())
+    print("Median FK error:", np.median(errors))
+    print("Max FK error:", errors.max())
+    print("95% FK error:", np.percentile(errors, 95))
+
     # plot
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 5))
 
     # ax1 configuration space
     ax1.scatter(qs[:, 1], qs[:, 2], color = 'blue')
@@ -70,15 +80,15 @@ def evaluate(cfg: FMConfig):
     ax2.grid(True, alpha=0.3)
     ax2.legend()
 
+
+    # histplot of error
+    ax3.hist(errors, bins=20)
+
     plt.tight_layout()
     plt.show()
 
 
-    # eval
-    for i, q in enumerate(qs):
-        pred_p = robot.fkine(q).t[:2]
-        error = np.sqrt((x[0] - pred_p[0]) ** 2 + (x[1] - pred_p[1]) ** 2)
-        print(f"error {i + 1} is {error}")
+    
 
 
 

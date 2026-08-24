@@ -13,14 +13,18 @@ import math
 import numpy as np
 from scipy.stats import qmc
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 import roboticstoolbox as rtb
+
+ROOT_PATH = Path(__file__).resolve().parents[1]
+print(f"root path: {ROOT_PATH}")
 
 robot = rtb.models.DH.Planar3()
 print(robot)
 
-Q_MIN = np.array([-pi, -pi, -pi])
-Q_MAX = np.array([pi, pi, pi])
+Q_MIN = np.array([-pi/3, -pi/3, -pi/3])
+Q_MAX = np.array([pi/3, pi/3, pi/3])
 
 def sobel_joint_samples(n_samples: int, seed = None):
     # scramble: introduce randomness
@@ -97,5 +101,6 @@ def plot_space(q, p):
     plt.show()
 
 n = 100000
-qs, p = generate_dataset(n, 42, save_path="./planar3r.npz")
+data_path = Path(ROOT_PATH, "3Rplanar/planar3r.npz")
+qs, p = generate_dataset(n, 42, save_path=data_path)
 # plot_space(qs, p)
