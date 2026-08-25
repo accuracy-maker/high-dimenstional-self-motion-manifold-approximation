@@ -7,37 +7,10 @@ from model.flow_matching import FMConfig, FlowMatching
 
 import roboticstoolbox as rtb
 
-def evaluate(cfg: FMConfig):
-    # load robot
-    robot = rtb.models.DH.Planar3()
-    print("robot loaded")
 
-    # load model
-    fm = FlowMatching(cfg)
-    fm.load()
-    print(f'model loaded')
-
-    # sampling
-    data = np.load(cfg.dataset_path)
-    # x = np.array([1, 1/2])
-    x = data['ps'][10]
-    print(f"target postion: {x}")
-    qs = fm.sample(x, n_samples=1000, n_steps=100)
-    print("sampling qs:\n")
-    print(qs)
-
-
-    # eval
-    errors = np.linalg.norm(robot.fkine(qs).t[:,:2] - x[None, :], axis=1)
-
-    print("Mean FK error:", errors.mean())
-    print("Median FK error:", np.median(errors))
-    print("Max FK error:", errors.max())
-    print("95% FK error:", np.percentile(errors, 95))
-
-    # plot
+def plot_eval(qs: np.ndarray, x: np.ndarray, errors: np.ndarray):
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 5))
-
+    
     # ax1 configuration space
     ax1.scatter(qs[:, 1], qs[:, 2], color = 'blue')
     ax1.set_xlabel(r'$\theta_2$ (rad)')
@@ -88,7 +61,37 @@ def evaluate(cfg: FMConfig):
     plt.show()
 
 
-    
+
+def evaluate(cfg: FMConfig):
+    # load robot
+    robot = rtb.models.DH.Planar3()
+    print("robot loaded")
+
+    # load model
+    fm = FlowMatching(cfg)
+    fm.load()
+    print(f'model loaded')
+
+    # sampling
+    data = np.load(cfg.dataset_path)
+    # x = np.array([1, 1/2])
+    x = data['ps'][10]
+    print(f"target postion: {x}")
+    qs = fm.sample(x, n_samples=1000, n_steps=100)
+    print("sampling qs:\n")
+    print(qs)
+
+
+    # eval
+    errors = np.linalg.norm(robot.fkine(qs).t[:,:2] - x[None, :], axis=1)
+
+    print("Mean FK error:", errors.mean())
+    print("Median FK error:", np.median(errors))
+    print("Max FK error:", errors.max())
+    print("95% FK error:", np.percentile(errors, 95))
+
+    # plot
+    plot_eval(qs, x, errors)
 
 
 
