@@ -3,10 +3,6 @@ ODE for 1-D SMM
 
 reference: Dominic Guri and George Kantor "ODE Methods for Computing One-Dimensional Self-Motion  Manifolds"
 """
-
-from email.errors import NonPrintableDefect
-from math import tan
-
 import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -14,10 +10,6 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Sequence
 
 import roboticstoolbox as rtb
-from sympy import singularityintegrate
-from zarr import full
-
-from rclpy import init
 
 class NearSingularityError(RuntimeError):
     """Raised when the planar task Jacobian no longer has rank two."""
@@ -289,7 +281,7 @@ def config_from_joint_points(
     joint_points: np.ndarray
 ) -> np.ndarray:
     """recover configration of 3R manipulator from four plannar points"""
-    points = np.asarray(points, dtype=float)
+    points = np.asarray(joint_points, dtype=float)
 
     if points.shape != (4,2):
         raise ValueError("points must have shape (4,2)")
@@ -340,7 +332,7 @@ def unique_configs(
     tolerance: float = 1e-8
 ) -> list[np.ndarray]:
 
-    unique = list[np.ndarray] = []
+    unique: list[np.ndarray] = []
     for config in configs:
         q = np.asarray(config, dtype=float).reshape(3)
         if all(torus_distance(q, previous) > tolerance for previous in unique):

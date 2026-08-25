@@ -60,8 +60,6 @@ def plot_eval(qs: np.ndarray, x: np.ndarray, errors: np.ndarray):
     plt.tight_layout()
     plt.show()
 
-
-
 def evaluate(cfg: FMConfig):
     # load robot
     robot = rtb.models.DH.Planar3()
@@ -92,8 +90,6 @@ def evaluate(cfg: FMConfig):
 
     # plot
     plot_eval(qs, x, errors)
-
-
 
 if __name__ == "__main__":
     cfg = FMConfig()
