@@ -26,25 +26,25 @@ ROOT_PATH = Path(__file__).resolve().parents[1]
 class FMConfig:
     # robot info
     robot_name: str = "7R_pose"
-    
+
     @property
     def load_robot(self) -> RobotConfig:
         return get_robot_config(self.robot_name)
 
     # neural network config
-    hidden_dim: int = 256
-    n_layers: int = 4
+    hidden_dim: int = 512
+    n_layers: int = 5
     time_emb_dim: int = 64
     lr: float = 1e-3
     weight_decay: float = 1e-5
-    batch_size: int = 512
-    n_epochs: int = 1000
+    batch_size: int = 1024
+    n_epochs: int = 200
     n_ode_steps: int = 100
     test_size: float = 0.1
 
     # ckpt
     ckpt_path: Path = ROOT_PATH / "training/checkpoints" / f"{robot_name}.pt"
-    
+
     # device
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -52,7 +52,7 @@ class FMConfig:
 
 # data preprocessing
 def load_data(cfg: FMConfig):
-    
+
     robot = cfg.load_robot
     data = np.load(robot.save_path)
     print(f"data is loaded from {robot.save_path}")
@@ -138,7 +138,8 @@ class FlowMatching:
     def __init__(self, cfg: FMConfig, norm: dict):
         self.cfg = cfg
         self.model = VelocityField(cfg).to(cfg.device)
-        self.norm = norm
+        self.norm = {k: torch.as_tensor(v, dtype=torch.float32, device=cfg.device)
+                     for k,v in norm.items()}
 
     def loss(self, q1, x):
         """ q0 ~ N(0, I) -> P(q1|x)"""
@@ -161,7 +162,7 @@ class FlowMatching:
         self.model.eval()
 
         x = torch.as_tensor(x, dtype=torch.float32, device=self.cfg.device)
-        
+
 
         if x.dim() == 1:
             # add batch dim for neural network forward
@@ -189,7 +190,7 @@ class FlowMatching:
             keep = retain or (i < self.cfg.q_dim - 1)
             grad = torch.autograd.grad(v[:, i].sum(), q_t, retain_graph=keep)[0]
             div = div + grad[:, i]
-        
+
         return v.detach(), div.detach()
 
 

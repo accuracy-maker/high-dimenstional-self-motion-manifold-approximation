@@ -8,6 +8,9 @@ __pycache__/
 # PyTorch checkpoints
 *.pt
 
+# Numpy datasets
+*.npz
+
 # Optional: OS/editor files
 .DS_Store
 Thumbs.db

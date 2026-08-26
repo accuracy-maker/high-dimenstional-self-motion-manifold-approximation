@@ -31,7 +31,7 @@ class RobotConfig:
     save_path: Path
     task: str # "planar", "position", "pose"
     x_max: float
-    
+
 
     @property
     def q_min(self) -> np.ndarray:
@@ -44,12 +44,12 @@ class RobotConfig:
     @property
     def q_dim(self) -> int:
         return self.robot.n
-    
+
     @property
     def x_dim(self) -> int:
         if self.task == "planar":
             return 2
-        
+
         elif self.task == "position":
             return 3
 
@@ -186,7 +186,7 @@ def plot_space(
     if config.name == "3R":
         # plot configuration space theta2-theta3 plane and workspace
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-        
+
         # theta2-theta3 plane
         ax1.scatter(q[:, 1], q[:, 2], color = 'blue')
         ax1.set_xlabel(r'$\theta_2$ (rad)')
@@ -196,7 +196,7 @@ def plot_space(
 
         ax1.set_aspect('equal', adjustable='box')
         ax1.grid(True, alpha=0.3)
-        
+
         # draw the workspace boundary
         # Draw theoretical workspace boundary
         theta = np.linspace(0, 2 * np.pi, 150)
@@ -233,7 +233,7 @@ def plot_space(
 
         plt.tight_layout()
         plt.show()
-    
+
     elif config.name == "7R_pose" or config.name == "7R_position":
         # High-level layout:
         # left  = 3x3 joint-space histograms
@@ -290,7 +290,7 @@ def plot_space(
         ax_workspace.set_title("Workspace")
 
         plt.show()
-    
+
     else:
         raise NameError("The model name is invalid.")
 
@@ -300,11 +300,11 @@ if __name__ == "__main__":
     config = get_robot_config(robot_name)
     print_robot_config(config)
 
-    n = 131072
+    n = 2000000
     qs, pos = generate_dataset(
         n_samples=n,
         config=config,
         seed=42,
     )
 
-    plot_space(config, qs, pos)
+    #plot_space(config, qs, pos)

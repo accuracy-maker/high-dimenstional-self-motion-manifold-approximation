@@ -22,7 +22,7 @@ def evaluate(cfg: FMConfig):
     # sampling
     robot_cfg = cfg.load_robot
     data = np.load(robot_cfg.save_path)
-    
+
     # x = np.array([0.0, 1.5])
     x = data['xs'][1000]
     print(f"target pose: {x}")
@@ -38,7 +38,7 @@ def evaluate(cfg: FMConfig):
     # position
     position_errors = np.linalg.norm(T[:, :3, 3] - x[:3], axis=-1)
     print(f"position error mean: {position_errors.mean()} m")
-    print(f"minimum position error: {position_errors.min()} m")     
+    print(f"minimum position error: {position_errors.min()} m")
     total_length = 1.2
 
     # orientation
@@ -71,7 +71,7 @@ def evaluate(cfg: FMConfig):
 
     print(f"orientation error mean: {ori_errors.mean()} rad")
     print(f"minimum orientation error: {ori_errors.min()} rad")
-    
+
     error = 0.5 * (position_errors / total_length + ori_errors / np.pi)
     print(f" mean error: {error.mean()}")
     print(f" min error: {error.min()}")
