@@ -57,28 +57,31 @@ def load_data(cfg: FMConfig):
     data = np.load(robot.save_path)
     print(f"data is loaded from {robot.save_path}")
 
-    # normalise angles
-    raw_qs = torch.from_numpy(data['qs']).float()
-    # print(f"raw qs shape: {raw_qs.shape}")
+    def stats(v):
+        lo, hi = v.min(axis=0), v.max(axis=0)
+        return (hi + lo) / 2.0, np.maximum((hi - lo) / 2.0, 1e-6)
 
+    # raw data
+    qs = data['qs'].astype(np.float32)
+    xs = data['xs'].astype(np.float32)
 
-    qs_mid = torch.as_tensor((robot.q_min + robot.q_max) / 2, dtype=torch.float32) # (N,)
-    qs_half = torch.as_tensor((robot.q_max - robot.q_min) / 2, dtype=torch.float32) # (N,)
+    # normalize
+    q_c, q_h = stats(qs)
+    x_c, x_h = stats(xs)
 
-    norm_qs = (raw_qs - qs_mid) / qs_half
-    # print(f"normalised qs shape: {norm_qs.shape}")
-    # print(f"minimum values of norm qs: {torch.min(norm_qs, dim=0).values}")
-    # print(f"maximum values of norm qs: {torch.max(norm_qs, dim=0).values}")
+    norm = {
+        "q_c": q_c,
+        "q_h": q_h,
+        "x_c": x_c,
+        "x_h": x_h
+    }
 
-    
-    # normalise position 
-    pos = torch.from_numpy(data['xs']).float()
+    qs = torch.from_numpy((qs - q_c) / q_h)
+    xs = torch.from_numpy((xs - x_c) / x_h)
 
-    pos = pos.clone()
-    pos[:, :3] = pos[:, :3] / robot.x_max
 
     # reproducible seed
-    n = norm_qs.shape[0] # how many rows
+    n = qs.shape[0] # how many rows
     g = torch.Generator().manual_seed(cfg.seed)
     perm = torch.randperm(n, generator=g)
 
@@ -86,10 +89,10 @@ def load_data(cfg: FMConfig):
     n_test = int(n * cfg.test_size)
     train_idx, test_idx = perm[n_test:], perm[:n_test]
 
-    train_set = TensorDataset(norm_qs[train_idx], pos[train_idx])
-    test_set = TensorDataset(norm_qs[test_idx], pos[test_idx])
+    train_set = TensorDataset(qs[train_idx], xs[train_idx])
+    test_set = TensorDataset(qs[test_idx], xs[test_idx])
 
-    return train_set, test_set
+    return train_set, test_set, norm
 
 # Flow matching model
 class TimeEmbedding(nn.Module):
@@ -132,9 +135,10 @@ class VelocityField(nn.Module):
 class FlowMatching:
     """CFM loss + Euler ODE sampling + exact log-likelihood"""
 
-    def __init__(self, cfg: FMConfig):
+    def __init__(self, cfg: FMConfig, norm: dict):
         self.cfg = cfg
         self.model = VelocityField(cfg).to(cfg.device)
+        self.norm = norm
 
     def loss(self, q1, x):
         """ q0 ~ N(0, I) -> P(q1|x)"""
@@ -163,10 +167,8 @@ class FlowMatching:
             # add batch dim for neural network forward
             x = x[None, :]
 
-        # just scale the position
-        x = x.clone()
-        x[:, :3] = x[:, :3] / robot.x_max
-        x = x.repeat_interleave(n_samples, dim=0) # keep it same for each q sample
+        # normalize xs
+        x = ((x - self.norm["x_c"]) / self.norm["x_h"]).repeat_interleave(n_samples, dim = 0)
 
         q = torch.randn(x.shape[0], robot.q_dim, device=self.cfg.device)
         dt = 1.0 / n_steps
@@ -175,14 +177,8 @@ class FlowMatching:
         for k in range(n_steps):
             t = torch.full((q.shape[0], 1), k * dt, device=self.cfg.device)
             q = q + dt * self.model(q, t, x)
-        
-        q_norm = q.clamp(-1.0, 1.0)
-        # unnormalised
-        q_mid = torch.as_tensor((robot.q_min + robot.q_max) / 2, dtype=torch.float32, device = self.cfg.device) # (N,)
-        q_half = torch.as_tensor((robot.q_max - robot.q_min) / 2, dtype=torch.float32, device = self.cfg.device) # (N,)     
-        raw_q = q_mid + q_half * q_norm
 
-        return raw_q.cpu().numpy()
+        return (q * self.norm["q_h"] + self.norm["q_c"]).cpu().numpy()
 
     def _velocity_divergence(self, q_t, t, x, retain: bool):
         q_t = q_t.detach().requires_grad_(True)
@@ -207,5 +203,5 @@ class FlowMatching:
 
 if __name__ == "__main__":
     cfg = FMConfig()
-    train_set, test_set = load_data(cfg)
+    train_set, test_set, norm = load_data(cfg)
     print(f"train size: {len(train_set)} | test size: {len(test_set)}")

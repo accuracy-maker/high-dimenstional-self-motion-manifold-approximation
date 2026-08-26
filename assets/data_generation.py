@@ -48,13 +48,13 @@ class RobotConfig:
     @property
     def x_dim(self) -> int:
         if self.task == "planar":
-            return int(2)
+            return 2
         
         elif self.task == "position":
-            return int(3)
+            return 3
 
         elif self.task == "pose":
-            return int(7) # x_dim = 7 doesn't mean workspace needs 7-D information, it's 6-D actually
+            return 9 # x_dim = 9 doesn't mean workspace needs 7-D information, it's 6-D actually
         else:
             raise ValueError(f"Invalid task: {self.task}")
 
@@ -148,17 +148,14 @@ def generate_dataset(
     elif config.name == "7R_pose":
         # full pose (x, y, z, quat) (7,)
         # transform matrix
-        T = config.robot.fkine(qs)
-
+        T = np.array(config.robot.fkine(qs).A)
+        # print(f"T shape: {T.shape}")
         # position
-        position = T.t # (N,3)
+        position = T[:, :3, 3] # (N,3)
 
-        # quaternions
-        quat = Rotation.from_matrix(T.R).as_quat(canonical=True)
-
-        # full pose
-        pos = np.concatenate([position, quat], axis=1)
-        assert pos.shape[1] == 7
+        # full pose: (x, y, z, r1, r2)
+        pos = np.concatenate([position, T[:, :3, 0], T[:, :3, 1]], axis=1)
+        # print(f"qs shape: {qs.shape} | xs shape: {[pos.shape]}")
 
         # save
         np.savez(config.save_path, qs=qs, xs=pos)

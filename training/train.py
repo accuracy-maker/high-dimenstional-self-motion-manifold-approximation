@@ -17,7 +17,7 @@ def train(cfg: FMConfig) -> FlowMatching:
     print(f"training on the device: {cfg.device}")
 
     # read data
-    train_set, test_set = load_data(cfg)
+    train_set, test_set, norm = load_data(cfg)
 
     train_loader = DataLoader(
         train_set,
@@ -31,7 +31,7 @@ def train(cfg: FMConfig) -> FlowMatching:
     )
 
     # flow-matching model
-    fm = FlowMatching(cfg)
+    fm = FlowMatching(cfg, norm)
 
     opt = torch.optim.AdamW(
         fm.model.parameters(),
