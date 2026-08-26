@@ -85,7 +85,7 @@ def main():
     )
     grid_params = GridParams(pos_resolution=0.005, use_xy_halfplane=True)
     smm_solver_params = SMMSolverParams(samples=64, step=0.0075, sing_thresh=3e-2, smm_iters=2500)
-    training_config = TrainingConfig(epochs=5000, learning_rate=0.001, weight_decay=0.0001, fft_cutoff=20)
+    training_config = TrainingConfig(epochs=5000, learning_rate=0.001, weight_decay=0.0001, fft_cutoff=128)
 
     training_pipeline(robot, grid_params=grid_params, smm_params=smm_solver_params, training_config=training_config, name="3r_smms")
     bundle = load_trained_bundle(name="3r_smms")

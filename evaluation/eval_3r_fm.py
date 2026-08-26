@@ -15,8 +15,8 @@ def plot_eval(qs: np.ndarray, x: np.ndarray, errors: np.ndarray):
     ax1.scatter(qs[:, 1], qs[:, 2], color = 'blue')
     ax1.set_xlabel(r'$\theta_2$ (rad)')
     ax1.set_ylabel(r'$\theta_3$ (rad)')
-    ax1.set_xlim(cfg.Q_MIN, cfg.Q_MAX)
-    ax1.set_ylim(cfg.Q_MIN, cfg.Q_MAX)
+    ax1.set_xlim(-np.pi/2, np.pi/2)
+    ax1.set_ylim(-np.pi/2, np.pi/2)
 
     ax1.set_aspect('equal', adjustable='box')
     ax1.grid(True, alpha=0.3)
@@ -72,8 +72,8 @@ def evaluate(cfg: FMConfig):
 
     # sampling
     data = np.load(cfg.dataset_path)
-    # x = np.array([1, 1/2])
-    x = data['ps'][10]
+    # x = np.array([0.0, 1.5])
+    x = data['ps'][5]
     print(f"target postion: {x}")
     qs = fm.sample(x, n_samples=1000, n_steps=100)
     print("sampling qs:\n")
@@ -82,11 +82,11 @@ def evaluate(cfg: FMConfig):
 
     # eval
     errors = np.linalg.norm(robot.fkine(qs).t[:,:2] - x[None, :], axis=1)
+    total_link_length = 3
 
-    print("Mean FK error:", errors.mean())
-    print("Median FK error:", np.median(errors))
-    print("Max FK error:", errors.max())
-    print("95% FK error:", np.percentile(errors, 95))
+    print(f"Mean FK error: {errors.mean() / total_link_length * 100 :.2f} %")
+    print(f"Max FK error: {errors.max() / total_link_length * 100 :.2f} %")
+   
 
     # plot
     plot_eval(qs, x, errors)
