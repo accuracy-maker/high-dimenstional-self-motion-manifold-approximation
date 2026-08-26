@@ -16,58 +16,66 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
+# robot config
+from assets.data_generation import RobotConfig, get_robot_config
+
 ROOT_PATH = Path(__file__).resolve().parents[1]
 # print(f"root path: {ROOT_PATH}")
 
 @dataclass
 class FMConfig:
-    # 3 joint angles directly represented in normalized coordinates
-    q_dim: int = 3
+    # robot info
+    robot_name: str = "7R_pose"
+    
+    @property
+    def load_robot(self) -> RobotConfig:
+        return get_robot_config(self.robot_name)
 
-    # planar workspace position (x, y)
-    x_dim: int = 2
-
-    Q_MIN: float = -math.pi / 3
-    Q_MAX: float = math.pi / 3
-
-    # maximum reach of 3R planar manipulator
-    X_MAX: float = 3.0
-
+    # neural network config
     hidden_dim: int = 256
     n_layers: int = 4
     time_emb_dim: int = 64
-
     lr: float = 1e-3
     weight_decay: float = 1e-5
-
     batch_size: int = 512
-    n_epochs: int = 500
-
+    n_epochs: int = 1000
     n_ode_steps: int = 100
-
     test_size: float = 0.1
 
-    dataset_path: Path = ROOT_PATH / "assets/3Rplanar/planar3r.npz"
-    ckpt_path: Path = ROOT_PATH / "training/checkpoints/fm_3r.pt"
-
+    # ckpt
+    ckpt_path: Path = ROOT_PATH / "training/checkpoints" / f"{robot_name}.pt"
+    
+    # device
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
 
     seed: int = 42
 
 # data preprocessing
-
 def load_data(cfg: FMConfig):
-    data = np.load(cfg.dataset_path)
+    
+    robot = cfg.load_robot
+    data = np.load(robot.save_path)
+    print(f"data is loaded from {robot.save_path}")
 
     # normalise angles
     raw_qs = torch.from_numpy(data['qs']).float()
+    # print(f"raw qs shape: {raw_qs.shape}")
 
-    qs_mid = (cfg.Q_MIN + cfg.Q_MAX) / 2
-    qs_half = (cfg.Q_MAX - cfg.Q_MIN) / 2
-    norm_qs = (raw_qs - qs_mid) / qs_half # norm_qs \in [-1, 1]
+
+    qs_mid = torch.as_tensor((robot.q_min + robot.q_max) / 2, dtype=torch.float32) # (N,)
+    qs_half = torch.as_tensor((robot.q_max - robot.q_min) / 2, dtype=torch.float32) # (N,)
+
+    norm_qs = (raw_qs - qs_mid) / qs_half
+    # print(f"normalised qs shape: {norm_qs.shape}")
+    # print(f"minimum values of norm qs: {torch.min(norm_qs, dim=0).values}")
+    # print(f"maximum values of norm qs: {torch.max(norm_qs, dim=0).values}")
+
     
     # normalise position 
-    ps = torch.from_numpy(data['ps']).float() / cfg.X_MAX
+    pos = torch.from_numpy(data['xs']).float()
+
+    pos = pos.clone()
+    pos[:, :3] = pos / robot.x_max
 
     # reproducible seed
     n = norm_qs.shape[0] # how many rows
@@ -78,8 +86,8 @@ def load_data(cfg: FMConfig):
     n_test = int(n * cfg.test_size)
     train_idx, test_idx = perm[n_test:], perm[:n_test]
 
-    train_set = TensorDataset(norm_qs[train_idx], ps[train_idx])
-    test_set = TensorDataset(norm_qs[test_idx], ps[test_idx])
+    train_set = TensorDataset(norm_qs[train_idx], pos[train_idx])
+    test_set = TensorDataset(norm_qs[test_idx], pos[test_idx])
 
     return train_set, test_set
 
@@ -106,14 +114,15 @@ class VelocityField(nn.Module):
     def __init__(self, cfg: FMConfig):
         super().__init__()
 
+        robot = cfg.load_robot
         self.time_emb = TimeEmbedding(cfg.time_emb_dim)
 
-        in_dim = cfg.q_dim + cfg.time_emb_dim + cfg.x_dim
+        in_dim = robot.q_dim + cfg.time_emb_dim + robot.x_dim
 
         layers = [nn.Linear(in_dim, cfg.hidden_dim), nn.SiLU()]
         for _ in range(cfg.n_layers - 1):
             layers += [nn.Linear(cfg.hidden_dim, cfg.hidden_dim), nn.SiLU()]
-        layers += [nn.Linear(cfg.hidden_dim, cfg.q_dim)]
+        layers += [nn.Linear(cfg.hidden_dim, robot.q_dim)]
         self.net = nn.Sequential(*layers)
 
     def forward(self, q_t, t, x):
@@ -133,6 +142,7 @@ class FlowMatching:
         t = torch.rand(b, 1, device=q1.device)
         q0 = torch.randn_like(q1)
         q_t = (1.0 - t) * q0 + t * q1
+        # print(f'x dim: {x.shape}')
         v = self.model(q_t, t, x)
         return((v - (q1 - q0)) ** 2).mean()
 
@@ -141,18 +151,24 @@ class FlowMatching:
         """sample q ~ P(q|x). x: (xdim,) or (B, xdim). Return unnormalised q"""
         n_steps = n_steps or self.cfg.n_ode_steps
 
-        q_mid = (self.cfg.Q_MIN + self.cfg.Q_MAX) / 2
-        q_half = (self.cfg.Q_MAX - self.cfg.Q_MIN) / 2       
+        robot = self.cfg.load_robot
+
 
         self.model.eval()
 
         x = torch.as_tensor(x, dtype=torch.float32, device=self.cfg.device)
+        
+
         if x.dim() == 1:
             # add batch dim for neural network forward
             x = x[None, :]
-        x = (x / self.cfg.X_MAX).repeat_interleave(n_samples, dim=0) # keep it same for each q sample
 
-        q = torch.randn(x.shape[0], self.cfg.q_dim, device=self.cfg.device)
+        # just scale the position
+        x = x.clone()
+        x[:, :3] = x[:, :3] / robot.x_max
+        x = x.repeat_interleave(n_samples, dim=0) # keep it same for each q sample
+
+        q = torch.randn(x.shape[0], robot.q_dim, device=self.cfg.device)
         dt = 1.0 / n_steps
 
         # ODE
@@ -162,6 +178,8 @@ class FlowMatching:
         
         q_norm = q.clamp(-1.0, 1.0)
         # unnormalised
+        q_mid = torch.as_tensor((robot.q_min + robot.q_max) / 2, dtype=torch.float32, device = self.cfg.device) # (N,)
+        q_half = torch.as_tensor((robot.q_max - robot.q_min) / 2, dtype=torch.float32, device = self.cfg.device) # (N,)     
         raw_q = q_mid + q_half * q_norm
 
         return raw_q.cpu().numpy()
@@ -186,3 +204,8 @@ class FlowMatching:
     def load(self):
         state = torch.load(self.cfg.ckpt_path, map_location=self.cfg.device)
         self.model.load_state_dict(state)
+
+if __name__ == "__main__":
+    cfg = FMConfig()
+    train_set, test_set = load_data(cfg)
+    print(f"train size: {len(train_set)} | test size: {len(test_set)}")

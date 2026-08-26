@@ -29,6 +29,9 @@ class RobotConfig:
     name: str
     robot: object
     save_path: Path
+    task: str # "planar", "position", "pose"
+    x_max: float
+    
 
     @property
     def q_min(self) -> np.ndarray:
@@ -41,18 +44,42 @@ class RobotConfig:
     @property
     def q_dim(self) -> int:
         return self.robot.n
+    
+    @property
+    def x_dim(self) -> int:
+        if self.task == "planar":
+            return int(2)
+        
+        elif self.task == "position":
+            return int(3)
 
+        elif self.task == "pose":
+            return int(7) # x_dim = 7 doesn't mean workspace needs 7-D information, it's 6-D actually
+        else:
+            raise ValueError(f"Invalid task: {self.task}")
 
 ROBOT_CONFIGS = {
     "3R": RobotConfig(
         name="3R",
         robot=rtb.models.DH.Planar3(),
         save_path=ROOT_PATH / "3Rplanar" / "planar3r.npz",
+        task="planar",
+        x_max=3.0
     ),
-    "7R": RobotConfig(
-        name="7R",
+    "7R_pose": RobotConfig(
+        name="7R_pose",
         robot=rtb.models.DH.Panda(),
-        save_path=ROOT_PATH / "7R" / "7r.npz",
+        save_path=ROOT_PATH / "7R" / "7r_pose.npz",
+        task="pose",
+        x_max=1.2
+    ),
+
+    "7R_position": RobotConfig(
+        name="7R_position",
+        robot=rtb.models.DH.Panda(),
+        save_path=ROOT_PATH / "7R" / "7r_position.npz",
+        task="position",
+        x_max=1.2
     ),
 }
 
@@ -114,11 +141,11 @@ def generate_dataset(
         # planar motion
         ps = config.robot.fkine(qs).t
         ps = ps[:, :2]
-        np.savez(config.save_path, qs=qs, ps=ps)
+        np.savez(config.save_path, qs=qs, xs=ps)
         print(f"Saved {n_samples} samples to {config.save_path}")
         return qs, ps
 
-    elif config.name == "7R":
+    elif config.name == "7R_pose":
         # full pose (x, y, z, quat) (7,)
         # transform matrix
         T = config.robot.fkine(qs)
@@ -127,16 +154,28 @@ def generate_dataset(
         position = T.t # (N,3)
 
         # quaternions
-        quat = Rotation.from_matrix(T.R).as_quat()
+        quat = Rotation.from_matrix(T.R).as_quat(canonical=True)
 
         # full pose
         pos = np.concatenate([position, quat], axis=1)
         assert pos.shape[1] == 7
 
         # save
-        np.savez(config.save_path, qs=qs, pos=pos)
+        np.savez(config.save_path, qs=qs, xs=pos)
         print(f"Saved {n_samples} samples to {config.save_path}")
         return qs, pos
+
+    elif config.name == "7R_position":
+        # position (x, y, z)
+        T = config.robot.fkine(qs)
+        # position
+        position = T.t # (N,3)
+
+        # save
+        np.savez(config.save_path,qs=qs,xs=position)
+        print(f"Saved {n_samples} samples to {config.save_path}")
+        return qs, position
+
 
     else:
         raise NameError("The model name is invalid.")
@@ -198,7 +237,7 @@ def plot_space(
         plt.tight_layout()
         plt.show()
     
-    elif config.name == "7R":
+    elif config.name == "7R_pose" or config.name == "7R_position":
         # High-level layout:
         # left  = 3x3 joint-space histograms
         # right = 3D workspace
@@ -260,11 +299,11 @@ def plot_space(
 
 
 if __name__ == "__main__":
-    robot_name = "7R"
+    robot_name = "7R_pose"
     config = get_robot_config(robot_name)
     print_robot_config(config)
 
-    n = 10_000
+    n = 131072
     qs, pos = generate_dataset(
         n_samples=n,
         config=config,
