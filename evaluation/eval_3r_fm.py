@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 
 import torch
-from model.flow_matching import FMConfig, FlowMatching
+from model.flow_matching import FMConfig, FlowMatching, load_data
 
 import roboticstoolbox as rtb
 
@@ -15,8 +15,8 @@ def plot_eval(qs: np.ndarray, x: np.ndarray, errors: np.ndarray):
     ax1.scatter(qs[:, 1], qs[:, 2], color = 'blue')
     ax1.set_xlabel(r'$\theta_2$ (rad)')
     ax1.set_ylabel(r'$\theta_3$ (rad)')
-    ax1.set_xlim(-np.pi/2, np.pi/2)
-    ax1.set_ylim(-np.pi/2, np.pi/2)
+    ax1.set_xlim(-np.pi - 1, np.pi + 1)
+    ax1.set_ylim(-np.pi - 1, np.pi + 1)
 
     ax1.set_aspect('equal', adjustable='box')
     ax1.grid(True, alpha=0.3)
@@ -66,14 +66,16 @@ def evaluate(cfg: FMConfig):
     print("robot loaded")
 
     # load model
-    fm = FlowMatching(cfg)
+    _, _, norm = load_data(cfg)
+    fm = FlowMatching(cfg, norm)
     fm.load()
     print(f'model loaded')
 
     # sampling
-    data = np.load(cfg.dataset_path)
-    # x = np.array([0.0, 1.5])
-    x = data['ps'][5]
+    robot_cfg = cfg.load_robot
+    data = np.load(robot_cfg.save_path)
+    x = np.array([0.0, 0.7])
+    # x = data['xs'][100]
     print(f"target postion: {x}")
     qs = fm.sample(x, n_samples=1000, n_steps=100)
     print("sampling qs:\n")
@@ -81,7 +83,9 @@ def evaluate(cfg: FMConfig):
 
 
     # eval
-    errors = np.linalg.norm(robot.fkine(qs).t[:,:2] - x[None, :], axis=1)
+    T = np.array(robot.fkine(qs).A)
+    print(f"T shape: {T.shape}")
+    errors = np.linalg.norm(T[:, :2, 3] - x[:2], axis=-1)
     total_link_length = 3
 
     print(f"Mean FK error: {errors.mean() / total_link_length * 100 :.2f} %")

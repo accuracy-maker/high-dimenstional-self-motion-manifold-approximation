@@ -62,7 +62,7 @@ ROBOT_CONFIGS = {
     "3R": RobotConfig(
         name="3R",
         robot=rtb.models.DH.Planar3(),
-        save_path=ROOT_PATH / "3Rplanar" / "planar3r.npz",
+        save_path=ROOT_PATH / "3R" / "planar3r.npz",
         task="planar",
         x_max=3.0
     ),
@@ -139,8 +139,9 @@ def generate_dataset(
 
     if config.name == "3R":
         # planar motion
-        ps = config.robot.fkine(qs).t
-        ps = ps[:, :2]
+        T = np.array(config.robot.fkine(qs).A)
+        ps = T[:, :2, 3]
+        print(f"ps shape: {ps.shape}")
         np.savez(config.save_path, qs=qs, xs=ps)
         print(f"Saved {n_samples} samples to {config.save_path}")
         return qs, ps
@@ -191,8 +192,8 @@ def plot_space(
         ax1.scatter(q[:, 1], q[:, 2], color = 'blue')
         ax1.set_xlabel(r'$\theta_2$ (rad)')
         ax1.set_ylabel(r'$\theta_3$ (rad)')
-        ax1.set_xlim(config.q_min[0], config.q_max[0])
-        ax1.set_ylim(config.q_min[0], config.q_max[0])
+        ax1.set_xlim(config.q_min[0] - 1, config.q_max[0] + 1)
+        ax1.set_ylim(config.q_min[0] - 1, config.q_max[0] + 1)
 
         ax1.set_aspect('equal', adjustable='box')
         ax1.grid(True, alpha=0.3)
@@ -296,15 +297,15 @@ def plot_space(
 
 
 if __name__ == "__main__":
-    robot_name = "7R_pose"
+    robot_name = "3R"
     config = get_robot_config(robot_name)
     print_robot_config(config)
 
-    n = 2000000
+    n = 200000
     qs, pos = generate_dataset(
         n_samples=n,
         config=config,
         seed=42,
     )
 
-    #plot_space(config, qs, pos)
+    plot_space(config, qs, pos)

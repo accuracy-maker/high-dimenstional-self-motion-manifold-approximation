@@ -25,7 +25,7 @@ ROOT_PATH = Path(__file__).resolve().parents[1]
 @dataclass
 class FMConfig:
     # robot info
-    robot_name: str = "7R_pose"
+    robot_name: str = "3R"
 
     @property
     def load_robot(self) -> RobotConfig:
@@ -43,7 +43,9 @@ class FMConfig:
     test_size: float = 0.1
 
     # ckpt
-    ckpt_path: Path = ROOT_PATH / "training/checkpoints" / f"{robot_name}.pt"
+    @property
+    def ckpt_path(self) -> Path:
+        return ROOT_PATH / "training/checkpoints" / f"{self.robot_name}.pt"
 
     # device
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
