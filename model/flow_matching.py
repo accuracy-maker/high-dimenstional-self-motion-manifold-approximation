@@ -75,7 +75,7 @@ def load_data(cfg: FMConfig):
     pos = torch.from_numpy(data['xs']).float()
 
     pos = pos.clone()
-    pos[:, :3] = pos / robot.x_max
+    pos[:, :3] = pos[:, :3] / robot.x_max
 
     # reproducible seed
     n = norm_qs.shape[0] # how many rows
