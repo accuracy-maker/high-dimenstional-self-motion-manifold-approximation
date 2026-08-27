@@ -86,6 +86,8 @@ def evaluate(cfg: FMConfig):
     T = np.array(robot.fkine(qs).A)
     print(f"T shape: {T.shape}")
     errors = np.linalg.norm(T[:, :2, 3] - x[:2], axis=-1)
+    print(f"raw error mean: {errors.mean()}")
+    print(f"raw error min: {errors.min()}")
     total_link_length = 3
 
     print(f"Mean FK error: {errors.mean() / total_link_length * 100 :.2f} %")
@@ -96,5 +98,5 @@ def evaluate(cfg: FMConfig):
     plot_eval(qs, x, errors)
 
 if __name__ == "__main__":
-    cfg = FMConfig()
+    cfg = FMConfig(robot_name="3R")
     evaluate(cfg)
