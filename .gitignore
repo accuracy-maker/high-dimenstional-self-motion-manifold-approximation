@@ -11,6 +11,9 @@ __pycache__/
 # Numpy datasets
 *.npz
 
+# mujoco xml file
+assets/franka_emika_panda
+
 # Optional: OS/editor files
 .DS_Store
 Thumbs.db

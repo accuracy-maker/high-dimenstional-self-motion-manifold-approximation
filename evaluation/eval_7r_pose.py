@@ -11,6 +11,7 @@ import roboticstoolbox as rtb
 def evaluate(cfg: FMConfig):
     # load robot
     robot = rtb.models.DH.Panda()
+    print(robot)
     print("robot loaded")
 
     # load model

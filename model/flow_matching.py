@@ -25,7 +25,7 @@ ROOT_PATH = Path(__file__).resolve().parents[1]
 @dataclass
 class FMConfig:
     # robot info
-    robot_name: str = "3R"
+    robot_name: str = "7R_pose"
 
     @property
     def load_robot(self) -> RobotConfig:
