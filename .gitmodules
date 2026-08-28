@@ -1,0 +1,4 @@
+
+[submodule "model/realtime-smm"]
+	path = model/realtime-smm
+	url = https://github.com/accuracy-maker/realtime-smm.git
