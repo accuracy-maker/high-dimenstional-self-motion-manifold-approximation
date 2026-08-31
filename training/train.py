@@ -98,6 +98,6 @@ def train(cfg: FMConfig) -> FlowMatching:
     return fm
 
 if __name__ == "__main__":
-    cfg = FMConfig()
+    cfg = FMConfig(robot_name="kuka_iiwa_14")
     fm = train(cfg)
 

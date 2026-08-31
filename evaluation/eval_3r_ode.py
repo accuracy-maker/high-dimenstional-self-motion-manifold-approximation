@@ -6,6 +6,8 @@ from typing import Any, Iterable, Sequence
 from model.ode import *
 import roboticstoolbox as rtb
 
+from assets.data_generation import RobotConfig, get_robot_config
+
 # plot functions
 def wrapped_curve_for_plot(values: np.ndarray) -> np.ndarray:
     """Wrap a curve and insert NaNs at +/-pi discontinuities."""
@@ -24,7 +26,7 @@ def wrapped_curve_for_plot(values: np.ndarray) -> np.ndarray:
     return wrapped
 
 def plot_results(
-    robot: Any,
+    robot_cfg: RobotConfig,
     components: Sequence[SMMTrace],
     x: np.ndarray,
     title: str,
@@ -33,6 +35,8 @@ def plot_results(
 ) -> None:
 
     fig, axes = plt.subplots(2, 2, figsize=(12,5))
+
+    robot = robot_cfg.robot
 
     joint_pairs = [(0,1), (0,2), (1,2)]
 
@@ -125,15 +129,15 @@ if __name__ == "__main__":
     q0 = np.deg2rad(q0_deg)
 
     # 3R with length 3
-    robot = build_planar_3r([1, 1, 1]) 
+    robot_cfg = get_robot_config(robot_name="3R")
 
     # target
-    x = target(robot, q0)
+    x = target(robot_cfg, q0)
 
-    seeds = rrr_component_seed(robot, q0)
+    seeds = rrr_component_seed(robot_cfg, q0)
 
     components = search_smm_components(
-        robot,
+        robot_cfg,
         seeds,
         step_size=config.RK5_step_size,
         closure_tolerance=config.closure_tol,
@@ -142,7 +146,7 @@ if __name__ == "__main__":
         singularity_tolerance=config.singularity_tol,
     )
 
-    print(robot)
+    # print(robot)
     print(f"Initial configuration [deg]: {q0_deg}")
     print(f"Target position: [{x[0]:.9f}, {x[1]:.9f}]")
     print(f"Q* contains {len(seeds)} unique elbow-toggle seeds")
@@ -163,7 +167,7 @@ if __name__ == "__main__":
 
     # plot
     plot_results(
-        robot,
+        robot_cfg,
         components,
         x,
         title="1-D SMM by ODE",

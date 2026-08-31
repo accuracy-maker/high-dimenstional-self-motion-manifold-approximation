@@ -1,5 +1,5 @@
 """
-This is an evaluation of generative IK for 7R arm
+This is an evaluation of generative IK for panda 7R arm
 
 1. read the traget pose
 2. generate a batch of config candidates
@@ -8,8 +8,6 @@ This is an evaluation of generative IK for 7R arm
 """
 
 # mujoco
-import xml
-
 import mujoco
 import mujoco.viewer
 
@@ -42,7 +40,7 @@ data = mujoco.MjData(model)
 eval_data = mujoco.MjData(model)
 
 # load flow-matching model
-fm_cfg = FMConfig(robot_name="7R_pose")
+fm_cfg = FMConfig(robot_name="franka_emika_panda")
 _, _, norm = load_data(fm_cfg)
 
 fm_model = FlowMatching(fm_cfg, norm)

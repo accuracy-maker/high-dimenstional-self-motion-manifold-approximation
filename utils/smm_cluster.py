@@ -31,11 +31,11 @@ def filter_samples(qs, x, robot_cfg, fk_tol=0.01):
     if robot_cfg.name == "3R":
         pos_pred = T[:, :2, 3]
         err = np.linalg.norm(pos_pred - x[:2], axis=-1)
-        print(f"raw error mean: {err.mean()}")
-        print(f"raw error min: {err.min()}")
+        # print(f"raw error mean: {err.mean()}")
+        # print(f"raw error min: {err.min()}")
         return qs[err < fk_tol], (err < fk_tol).mean()
 
-    elif robot_cfg.name == "7R_pose":
+    elif robot_cfg.name == "franka_emika_panda":
         # err includes position error and orientation error
         postion_pred = T[:, :3, 3]
         R_pred_6d = T[:, :3, :2]

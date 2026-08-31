@@ -16,6 +16,8 @@ from model.flow_matching import FMConfig, FlowMatching, load_data
 # smm cluster
 from utils.smm_cluster import wrap_pi, filter_samples, cluster_torus
 
+from assets.data_generation import RobotConfig, get_robot_config
+
 @dataclass
 class ODEConfig:
     RK5_step_size: float = 0.05
@@ -87,19 +89,21 @@ if __name__ == "__main__":
             "inner":  np.array([-170.0, 150.0, 70.0]), # r < 1
         }
 
-    q0_deg = q_example_deg['outer']
+    q0_deg = q_example_deg['inner']
     q0 = np.deg2rad(q0_deg)
 
-    x = target(robot = robot_cfg.robot, q = q0)
+    robot_cfg = get_robot_config(robot_name="3R")
+
+    x = target(robot_cfg=robot_cfg, q = q0)
     print(f"target is: {x}")
 
     # ode
     ode_cfg = ODEConfig()
 
-    seeds = rrr_component_seed(robot_cfg.robot, q0)
+    seeds = rrr_component_seed(robot_cfg, q0)
 
     components = search_smm_components(
-        robot_cfg.robot,
+        robot_cfg,
         seeds,
         step_size=ode_cfg.RK5_step_size,
         closure_tolerance=ode_cfg.closure_tol,

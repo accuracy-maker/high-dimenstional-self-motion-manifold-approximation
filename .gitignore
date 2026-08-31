@@ -13,6 +13,7 @@ __pycache__/
 
 # mujoco xml file
 assets/franka_emika_panda
+assets/kuka_iiwa_14
 
 # Optional: OS/editor files
 .DS_Store
