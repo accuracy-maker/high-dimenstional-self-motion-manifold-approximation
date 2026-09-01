@@ -75,7 +75,7 @@ def SE3(R, p):
     return T
 
 # panda tool
-PANDA_TOOL = se3(rotz(-np.pi / 4.0), np.array([0.0, 0.0, 0.1034]))
+PANDA_TOOL = SE3(rotz(-np.pi / 4.0), np.array([0.0, 0.0, 0.1034]))
 
 # for fourier method, we should use the true joint limits
 # because we need to trace the a closed curve
@@ -88,3 +88,38 @@ def panda_links(joint_limits=(-np.pi, np.pi)):
 def panda(joint_limits=(-np.pi, np.pi)) -> FastRobot:
     return FastRobot(panda_links(joint_limits), taskspace=TASKSPACE, tool=PANDA_TOOL)
 
+def canonical_roll_frame(a_hat):
+    """
+    In terms of Panda or iiwa robots, the last joint just provides roll not local z-axis rotation
+    We can reduce that dimention when sampling
+    """
+    a = np.asarray(a_hat, float)
+    a = a / np.linalg.norm(a)
+    ref = np.array([0.0, 0.0, 1.0])
+    x = ref - np.dot(ref, a) * a
+    if np.linalg.norm(x) < 1e-8:                     # a_hat parallel to world z
+        ref = np.array([1.0, 0.0, 0.0])
+        x = ref - np.dot(ref, a) * a
+    x /= np.linalg.norm(x)
+    y = np.cross(a, x)
+    return np.column_stack([x, y, a])
+
+
+def roll_offset(R):
+    """
+    Angle beta such that R @ Rz(-beta) has the canonical roll, i.e. the amount
+    of tool-z rotation that must be removed from R (and later added to q7).
+    """
+    Rc = canonical_roll_frame(R[:, 2])
+    M = Rc.T @ R # rotation about z by beta
+    return float(np.arctan2(M[1, 0], M[0, 0]))
+
+def fibonacci_sphere(n):
+    """`n` approximately equispaced unit vectors on S^2."""
+    i = np.arange(n) + 0.5
+    phi = np.arccos(1.0 - 2.0 * i / n)
+    golden = np.pi * (1.0 + 5.0 ** 0.5)
+    theta = golden * i
+    return np.stack([np.cos(theta) * np.sin(phi),
+                     np.sin(theta) * np.sin(phi),
+                     np.cos(phi)], axis=1)

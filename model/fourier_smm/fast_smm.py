@@ -125,7 +125,7 @@ class FastRobot(Robot):
         """For a batch of target poses, find all distinct SMMs"""
 
         # n: joint dim, N: batch
-        n, n = self._n, Ts.shape[0] 
+        n, N = self._n, Ts.shape[0] 
 
         # joint limits
         lo, hi = self._joint_limits[:, 0], self._joint_limits[:, 1]
@@ -272,7 +272,7 @@ class FastRobot(Robot):
             flip = np.einsum("ij,ij->i", nv, prev[idx]) < 0
             nv[flip] *= -1.0
             prev[idx] = nv
-            e = self.bk.fk_err(q_a, T_star[idx], F)
+            e = self.bk.fk_err(q_a, T_target[idx], F)
             dq = nv + self.bk.dls_step(J, e, 1e-3)
             dq *= step / np.maximum(np.linalg.norm(dq, axis=1, keepdims=True), 1e-12)
             q[idx] = q_a + dq

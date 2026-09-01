@@ -53,7 +53,7 @@ class BatchDH:
         T[:, :, 3, 3] = 1.0
         return T
 
-    def fk_frame(self, q):
+    def fk_frames(self, q):
         """exclude tool frame as it's not a joint and it's not in jacobian matrix"""
         A = self.link_transforms(q)
         B = q.shape[0]
@@ -71,12 +71,12 @@ class BatchDH:
 
     def fk(self, q):
         """End-effector (tool) pose.  q:(B,n) -> (B,4,4)."""
-        return self.fk_frame(q)[:, -1] @ self.tool
+        return self.fk_frames(q)[:, -1] @ self.tool
 
     def jacobian(self, q, frames=None):
         """base-frame geometric jacobian of the tool point"""
         # F: (B, n+1, 4, 4)
-        F = self.fk_frame(q) if frames is None else frames
+        F = self.fk_frames(q) if frames is None else frames
 
         # last joint's z-axis
         # z.shape = (B, n, 3)
@@ -125,7 +125,7 @@ class BatchDH:
     def fk_err(self, q, T_target, frames=None):
         """compute e_p and e_o"""
         # EE transform matrix
-        T = (self.fk_frame(q) if frames is None else frames)[:, -1] @ self.tool
+        T = (self.fk_frames(q) if frames is None else frames)[:, -1] @ self.tool
 
         # error (6,) 3 for position and 3 for rotation
         e = np.empty((q.shape[0], 6))
@@ -181,7 +181,7 @@ class BatchDH:
         """
         q = np.array(q0, dtype=np.float64, copy=True)
         for k in range(iters):
-            F = self.fk_frame(q)
+            F = self.fk_frames(q)
             e = self.fk_err(q, T_target, F)
             lam = 0.3 if k < 25 else (0.05 if k < 80 else 5e-3)
             dq = self.dls_step(self.masked_jacobian(q, F), e, lam)
@@ -194,7 +194,7 @@ class BatchDH:
         """Error correction of eq. (18), used after network prediction."""
         q = np.array(q, dtype=np.float64, copy=True)
         for _ in range(iters):
-            F = self.fk_frame(q)
+            F = self.fk_frames(q)
             e = self.fk_err(q, T_target, F)
             q += self.dls_step(self.masked_jacobian(q, F), e, lam)
         return q
