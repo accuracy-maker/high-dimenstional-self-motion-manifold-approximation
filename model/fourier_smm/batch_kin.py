@@ -152,4 +152,47 @@ class BatchDH:
 
         assert n == m + 1, "eq. (6) requires exactly one degree of redundancy"
 
-        raise NotImplemented
+        nv = np.empty((B,n))
+        idx = np.arange(n)
+        for i in range(n):
+            nv[:, i] = ((-1.0) ** i) * np.linalg.det(J[:, :, idx != i])
+        mag = np.linalg.norm(nv, axis=1)
+        return nv / np.maximum(mag, 1e-300)[:, None], mag
+
+    def sigma_min(self, J):
+        """Smallest singular value of J via eigvalsh(J J^T) -- cheaper than SVD."""
+        JJt = J @ J.transpose(0, 2, 1)
+        w = np.linalg.eigvalsh(JJt)[:, 0]
+        return np.sqrt(np.maximum(w, 0.0))
+
+    def dls_step(self, J, e, lam):
+        """one step of dampled ik"""
+        JJt = J @ J.transpose(0, 2, 1)
+        JJt[:, np.arange(self.m), np.arange(self.m)] += lam ** 2
+        return (J.transpose(0, 2, 1) @ np.linalg.solve(JJt, e[:, :, None]))[:, :, 0]
+
+    def ik(self, q0, T_target, iters=200, tol=1e-8, max_step=0.4):
+        """
+        Batched damped least-squares IK with a decreasing dampling schedule
+        q0: (B, n) T_targets: (B, 4, 4) -> q: (B,n), ok (B,)
+        """
+        q = np.array(q0, dtype=np.float64, copy=True)
+        for k in range(iters):
+            F = self.fk_frames(q)
+            e = self.fk_err(q, T_target, F)
+            lam = 0.3 if k < 25 else (0.05 if k < 80 else 5e-3)
+            dq = self.dls_step(self.masked_jacobian(q, F), e, lam)
+            nrm = np.linalg.norm(dq, axis=1, keepdims=True)
+            q += dq * np.minimum(1.0, max_step / np.maximum(nrm, 1e-12))
+        e = self.fk_err(q, T_target)
+        return q, np.linalg.norm(e, axis=1) < tol ** 0.5
+
+    def ik_correct(self, q, T_target, iters=3, lam=1e-3):
+        """Error correction of eq. (18), used after network prediction."""
+        q = np.array(q, dtype=np.float64, copy=True)
+        for _ in range(iters):
+            F = self.fk_frames(q)
+            e = self.fk_err(q, T_target, F)
+            q += self.dls_step(self.masked_jacobian(q, F), e, lam)
+        return q
+
