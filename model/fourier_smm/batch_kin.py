@@ -15,7 +15,7 @@ class BatchDH:
         self.theta = np.zeros_like(self.a) if theta is None else np.asarray(theta, dtype=np.float64)
 
         self.n = len(self.a) # how many joints
-        self.mask = np.ones(6, dtype=bool) if mask is not None else np.asarray(mask, dtype=bool)
+        self.mask = np.ones(6, dtype=bool) if mask is None else np.asarray(mask, dtype=bool)
         self.m = int(self.mask.sum())
 
         self.tool = np.eye(4) if tool is None else np.asarray(tool, dtype=np.float64)
@@ -152,7 +152,7 @@ class BatchDH:
         """the tagent direction of SMM is null-vector of the Jacobian"""
         # B: batch, m: task dim, n: joint dim
         B, m, n = J.shape
-
+        # print(f"B = {B} | m = {m} | n = {n}")
         assert n == m + 1, "eq. (6) requires exactly one degree of redundancy"
 
         nv = np.empty((B,n))
