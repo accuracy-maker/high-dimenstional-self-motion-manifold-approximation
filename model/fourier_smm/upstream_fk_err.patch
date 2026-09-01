@@ -1,0 +1,14 @@
+--- a/src/realtime_smm/helpers/robot.py
++++ b/src/realtime_smm/helpers/robot.py
+@@ -239,8 +239,10 @@
+ 
+         # Position error (desired - current)
+         e_p = p_d - p_c
+-        # Orientation error via log map: e_o = log(R_c^T R_d)
+-        R_err = R_c.T @ R_d
++        # Orientation error via log map, expressed in the BASE frame so that
++        # it is consistent with jacobian(), which returns the base-frame
++        # geometric Jacobian:  e_o = log(R_d R_c^T)
++        R_err = R_d @ R_c.T
+         e_o = Robot._so3_log(R_err)
+         dx6 = np.concatenate([e_p, e_o], axis=0)
