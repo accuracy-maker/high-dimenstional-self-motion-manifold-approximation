@@ -8,6 +8,7 @@ There would be 1-D SMMs which are curves
 
 import time
 import pickle
+import argparse
 import numpy as np
 from pathlib import Path
 from dataclasses import dataclass
@@ -18,7 +19,6 @@ from realtime_smm.helpers.types import AxisParams, NodeStage, SMMStatus
 from realtime_smm.grid import Grid
 from realtime_smm.learning import SMMNetworkBundle, train_cluster_networks
 from realtime_smm.postprocess_grid import postprocess_grid
-from sympy import sec
 
 from robots.planar3r import planar3r
 from robots.panda import panda, canonical_roll_frame, fibonacci_sphere, roll_offset, rotz
@@ -56,12 +56,14 @@ class TASKConfig:
         elif self.robot_name == "panda":
             if self.task == "pose":
                 TASKSPACE = TaskSpace.X | TaskSpace.Y | TaskSpace.Z | TaskSpace.SO3
+                return TASKSPACE
             else:
                 raise NameError("task is not valid")
 
         elif self.robot_name == "iiwa":
             if self.task == "pose":
                 TASKSPACE = TaskSpace.X | TaskSpace.Y | TaskSpace.Z | TaskSpace.SO3
+                return TASKSPACE
             else:
                 raise NameError("task is not valid")
         else:
@@ -98,7 +100,6 @@ def build_grid(
     task_config,
     pos_res=0.1,
     x_range=(-3.0, 3.0),
-    y_range=(-3.0, 3.0),
     z_range=None,
     n_dirs=None,
     SO3_k=6,
@@ -113,13 +114,17 @@ def build_grid(
             ),
             AxisParams(
                 axis=TaskSpace.Y,
-                lower=y_range[0],
-                upper=y_range[1],
+                lower=0.0,
+                upper=0.0,
                 resolution=pos_res,
             ),
         ]
 
-        return Grid(task_config.get_taskspace, axis_params)
+        grid = Grid(task_config.get_taskspace, axis_params)
+
+        grid.use_xy_halfplane = True
+
+        return grid
 
     elif task_config.robot_name in ("panda", "iiwa"):
 
@@ -183,6 +188,7 @@ class RollReducedBundle:
                 smm.data[:, 6] = np.angle(np.exp(1j * (smm.data[:, 6] + beta)))
         return ws
 
+
 if __name__ == "__main__":
     robot_name = "3R"
     task = "planar"
@@ -203,8 +209,8 @@ if __name__ == "__main__":
     grid_pkl = folder_path / f"{robot_name}_{task}_grid.pkl"
     grid = build_grid(
         task_config=TaskConfig,
+        pos_res=0.005,
         x_range=[-3.0, 3.0],
-        y_range=[-3.0, 3.0]
     )
 
     nodes = list(grid.graph.nodes)
@@ -267,4 +273,4 @@ if __name__ == "__main__":
                                     output_root=folder_path)
     print(f"[train] done in {time.time()-t0:.0f}s -> {folder_path}/{robot_name}", flush=True)
 
-print(f"[all] total {time.time()-t_all:.0f}s", flush=True)
+    print(f"[all] total {time.time()-t_all:.0f}s", flush=True)

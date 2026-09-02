@@ -64,6 +64,14 @@ time/pose reference = 1.504 s   ->  6x
 ```
 with 6x times faster is amazing!!!. The more samples, the faster.
 
+## 3R manipulator for 2-D planar motion
+![overlay_figure](results/3R_planar/figures/3R_planar.png)
 
+```text
+Fourier-series SMM raw output (10000/10000 reachable targets, 1437312 configs): mean 0.591% | median 0.446% | max 19.1%
+  + 3 Jacobian IK-correction steps: mean 0.000269% | median 9.48e-14% | max 69.2%
+```
+
+## 7R Panda for 6-D pose motion
 
 
