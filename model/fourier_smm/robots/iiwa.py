@@ -42,7 +42,7 @@ def iiwa14_standard_dh():
         0.0,
         0.400,
         0.0,
-        0.126,
+        0.081,
     ])
 
     theta = np.array([
@@ -52,16 +52,16 @@ def iiwa14_standard_dh():
         0.0,
         0.0,
         0.0,
-        np.pi,
+        0.0,
     ])
 
     return a, alpha, d, theta
 
 a, alpha, d, theta = iiwa14_standard_dh()
-print(f"a = {a}")
-print(f"alpha = {alpha}")
-print(f"d = {d}")
-print(f"theta = {theta}")
+# print(f"a = {a}")
+# print(f"alpha = {alpha}")
+# print(f"d = {d}")
+# print(f"theta = {theta}")
 
 def iiwa_links(joint_limits=(-np.pi, np.pi)):
     lo, hi = joint_limits
@@ -79,6 +79,7 @@ IIWA_TOOL = SE3(
     rotz(np.pi),
     np.array([0.0, 0.0, 0.045])
 )
+
 def iiwa(joint_limits = (-np.pi, np.pi)) -> FastRobot:
     return FastRobot(iiwa_links(joint_limits), taskspace=TASKSPACE, tool=IIWA_TOOL)
 

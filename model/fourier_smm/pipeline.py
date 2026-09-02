@@ -22,6 +22,7 @@ from realtime_smm.postprocess_grid import postprocess_grid
 
 from robots.planar3r import planar3r
 from robots.panda import panda, canonical_roll_frame, fibonacci_sphere, roll_offset, rotz
+from robots.iiwa import iiwa
 
 ROOT_PATH = Path(__file__).resolve().parents[0]
 print(f"root path: {ROOT_PATH}")
@@ -38,6 +39,9 @@ class TASKConfig:
 
         elif self.robot_name == "panda":
             robot = panda()
+
+        elif self.robot_name == "iiwa":
+            robot = iiwa()
 
         else:
             raise NameError("invalid robot name")
