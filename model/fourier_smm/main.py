@@ -240,6 +240,7 @@ def main():
     #---------------------------------------------------------
     section("5. plotting")
     fig_path = folder_path / "figures" / f"{args.robot_name}_{args.task}.png"
+    fig_path.mkdir(parents=True, exist_ok=True)
 
     T = np.eye(4)
     T[0, 3] = 0.7
