@@ -3,6 +3,9 @@ Standard DH table of iiwa14
 """
 
 import numpy as np
+from realtime_smm import DHLink, TaskSpace
+from fast_smm import FastRobot
+from robots.panda import rotz, SE3
 
 def iiwa14_standard_dh():
     """
@@ -42,7 +45,7 @@ def iiwa14_standard_dh():
         0.126,
     ])
 
-    theta_offset = np.array([
+    theta = np.array([
         0.0,
         0.0,
         0.0,
@@ -52,5 +55,30 @@ def iiwa14_standard_dh():
         np.pi,
     ])
 
-    return a, alpha, d, theta_offset
+    return a, alpha, d, theta
+
+a, alpha, d, theta = iiwa14_standard_dh()
+print(f"a = {a}")
+print(f"alpha = {alpha}")
+print(f"d = {d}")
+print(f"theta = {theta}")
+
+def iiwa_links(joint_limits=(-np.pi, np.pi)):
+    lo, hi = joint_limits
+    return [DHLink(
+        a = float(a[i]),
+        alpha = float(alpha[i]),
+        d = float(d[i]),
+        theta=theta[i],
+        lower_limit=lo,
+        upper_limit=hi
+    ) for i in range(7)]
+
+TASKSPACE = TaskSpace.X | TaskSpace.Y | TaskSpace.Z | TaskSpace.SO3
+IIWA_TOOL = SE3(
+    rotz(np.pi),
+    np.array([0.0, 0.0, 0.045])
+)
+def iiwa(joint_limits = (-np.pi, np.pi)) -> FastRobot:
+    return FastRobot(iiwa_links(joint_limits), taskspace=TASKSPACE, tool=IIWA_TOOL)
 
