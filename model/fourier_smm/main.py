@@ -244,8 +244,8 @@ def main():
     #---------------------------------------------------------
     if args.stage in ("all", "plot"):
         section("5. plotting")
-        fig_path = folder_path / "figures" / f"{args.robot_name}_{args.task}.png"
-        fig_path.mkdir(parents=True, exist_ok=True)
+        fig_folder_path = folder_path / "figures" 
+        fig_folder_path.mkdir(parents=True, exist_ok=True)
 
         T = np.eye(4)
         T[0, 3] = 0.7
@@ -279,13 +279,13 @@ def main():
 
         T[:3, :3] = R
 
-
-        plot_overlay(
-            robot = robot,
-            bundle = bundle,
-            T=T,
-            save_path=fig_path
-        )
+    fig_path = fig_folder_path / f"{TaskConfig.robot_name}_{TaskConfig.task}.png"
+    plot_overlay(
+        robot = robot,
+        bundle = bundle,
+        T=T,
+        save_path=fig_path
+    )
 
     print(f"[all] total {time.time()-t_all:.0f}s", flush=True)
 

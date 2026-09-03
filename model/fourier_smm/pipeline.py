@@ -76,6 +76,7 @@ class TASKConfig:
     @property
     def get_saved_path(self) -> Path:
         path = ROOT_PATH / "results" / f"{self.robot_name}_{self.task}"
+        print("Creating:", path)
         path.mkdir(parents=True, exist_ok=True)
         return path
 
