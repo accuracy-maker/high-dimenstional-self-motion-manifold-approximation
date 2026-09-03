@@ -1,6 +1,7 @@
 import numpy as np
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
+import argparse
 
 import torch
 from model.flow_matching import FMConfig, FlowMatching, load_data
@@ -98,5 +99,16 @@ def evaluate(cfg: FMConfig):
     plot_eval(qs, x, errors)
 
 if __name__ == "__main__":
-    cfg = FMConfig(robot_name="3R")
+
+    parser = argparse.ArgumentParser(description="Training flow-matching model")
+    parser.add_argument(
+        "--robot_name",
+        type=str,
+        default="3R",
+        help="robot name in ROBOT_CONFIGS",
+    )
+    args = parser.parse_args()
+
+
+    cfg = FMConfig(robot_name=args.robot_name)
     evaluate(cfg)

@@ -1,5 +1,7 @@
 import numpy as np
 
+import argparse
+
 from model.flow_matching import FMConfig, FlowMatching, load_data
 
 from assets.data_generation import mujoco_fk
@@ -230,8 +232,17 @@ def evaluate(cfg: FMConfig):
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser(description="Training flow-matching model")
+    parser.add_argument(
+        "--robot_name",
+        type=str,
+        default="3R",
+        help="robot name in ROBOT_CONFIGS",
+    )
+    args = parser.parse_args()
+
     cfg = FMConfig(
-        robot_name="kuka_iiwa_14"
+        robot_name=args.robot_name
     )
 
     evaluate(cfg)

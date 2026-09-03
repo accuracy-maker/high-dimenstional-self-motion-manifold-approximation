@@ -1,0 +1,115 @@
+3R manipulator is loaded (rtb)
+DHRobot: Planar 3 link, 3 joints (RRR), dynamics, standard DH parameters
+┌─────┬────┬────┬──────┐
+│ θⱼ  │ dⱼ │ aⱼ │  ⍺ⱼ  │
+├─────┼────┼────┼──────┤
+│  q1 │  0 │  1 │ 0.0° │
+│  q2 │  0 │  1 │ 0.0° │
+│  q3 │  0 │  1 │ 0.0° │
+└─────┴────┴────┴──────┘
+
+┌──────┬─────┬─────┬─────┐
+│ name │ q0  │ q1  │ q2  │
+├──────┼─────┼─────┼─────┤
+│   qr │  0° │  0° │  0° │
+│   qz │  0° │  0° │  0° │
+└──────┴─────┴─────┴─────┘
+
+minimum joint limits in rad:
+[-3.14159265 -3.14159265 -3.14159265]
+maximum joint limits in rad:
+[3.14159265 3.14159265 3.14159265]
+dataset will be saved at: /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/3R/planar3r.npz
+Saved 2000000 samples to /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/3R/planar3r.npz
+franka_emika_panda manipulator is loaded (mujoco)
+xml path: /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/franka_emika_panda/panda.xml
+minimum joint limits in rad:
+[-2.8973 -1.7628 -2.8973 -3.0718 -2.8973 -0.0175 -2.8973]
+maximum joint limits in rad:
+[ 2.8973  1.7628  2.8973 -0.0698  2.8973  3.7525  2.8973]
+dataset will be saved at: /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/7R/franka_emika_panda/7r_pose.npz
+time = 3939.811 ms
+Saved 2000000 samples to /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/7R/franka_emika_panda/7r_pose.npz
+kuka_iiwa_14 manipulator is loaded (mujoco)
+xml path: /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/kuka_iiwa_14/iiwa14.xml
+minimum joint limits in rad:
+[-2.96706 -2.0944  -2.96706 -2.0944  -2.96706 -2.0944  -3.05433]
+maximum joint limits in rad:
+[2.96706 2.0944  2.96706 2.0944  2.96706 2.0944  3.05433]
+dataset will be saved at: /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/7R/kuka_iiwa_14/7r_pose.npz
+time = 3765.396 ms
+Saved 2000000 samples to /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/7R/kuka_iiwa_14/7r_pose.npz
+training on the device: cuda
+data is loaded from /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/3R/planar3r.npz
+training on the device: cuda
+data is loaded from /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/7R/franka_emika_panda/7r_pose.npz
+training on the device: cuda
+data is loaded from /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/7R/kuka_iiwa_14/7r_pose.npz
+robot loaded
+data is loaded from /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/3R/planar3r.npz
+model loaded
+target postion: [0.  0.7]
+sampling qs:
+
+[[ 2.2435207   2.6587281   2.5049918 ]
+ [ 0.14831597  1.509395    1.9426394 ]
+ [-0.23796381  1.7844912   1.6589499 ]
+ ...
+ [ 3.0502672  -1.5453068  -1.8901604 ]
+ [ 1.9559226   2.4354596   2.6965897 ]
+ [ 0.3609972  -2.8108902  -2.091444  ]]
+T shape: (1000, 4, 4)
+raw error mean: 0.0041943040231044865
+raw error min: 0.00012735796006145935
+Mean FK error: 0.14 %
+Max FK error: 0.94 %
+data is loaded from /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/7R/franka_emika_panda/7r_pose.npz
+model loaded
+time = 0.922 ms
+target pose: [[ 0.216156    0.2293891   0.8396523   0.3917807   0.37525783 -0.84005324
+   0.25265999  0.8340599   0.49041513]]
+target pose shape: (1, 9)
+generated qs shape: (100, 7)
+time = 0.532 ms
+xs shape: (100, 9)
+position error mean: 0.00634622590246022 m
+minimum position error: 0.0009261932924444447 m
+R_true shape: (3, 3)
+R_pred shape: (100, 3, 3)
+orientation error mean: 0.025450056600047902 rad
+minimum orientation error: 0.0038020170323198486 rad
+mean error: 0.006694763102557896
+min error: 0.0015416481139816998
+
+Best sample
+index: 65
+q: [-2.2342877   0.42151618  2.6239429  -1.8427002   1.7141366   0.9916598
+ -0.07845626]
+position error: 0.0015701615513910184 m
+orientation error: 0.005575787449611623 rad
+combined error: 0.0015416481139816998
+data is loaded from /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/7R/kuka_iiwa_14/7r_pose.npz
+model loaded
+time = 2.251 ms
+target pose: [[ 0.4651048   0.24835674  0.97779091  0.85954702 -0.50564467 -0.07417803
+   0.50564467  0.82037107  0.26704827]]
+target pose shape: (1, 9)
+generated qs shape: (100, 7)
+time = 0.535 ms
+xs shape: (100, 9)
+position error mean: 0.006879393279654984 m
+minimum position error: 0.0010363336136713335 m
+R_true shape: (3, 3)
+R_pred shape: (100, 3, 3)
+orientation error mean: 0.03052487375827065 rad
+minimum orientation error: 0.006157845751464013 rad
+mean error: 0.007724598412407766
+min error: 0.002502870152875077
+
+Best sample
+index: 99
+q: [-2.0573938 -0.5328226  1.889259  -1.0004519 -2.8937888  1.3004618
+  0.5607586]
+position error: 0.0036547645505571667 m
+orientation error: 0.006157845751464013 rad
+combined error: 0.002502870152875077

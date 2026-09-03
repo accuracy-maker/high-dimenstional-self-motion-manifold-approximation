@@ -1,8 +1,8 @@
 """train flow-matching model based on the dataset"""
 
 import numpy as np
-import math
-import time
+import argparse
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 from model.flow_matching import FMConfig, FlowMatching, load_data, DataLoader
 
@@ -47,7 +47,7 @@ def train(cfg: FMConfig) -> FlowMatching:
     best_val = float("inf")
 
     # training
-    for epoch in range(cfg.n_epochs):
+    for epoch in tqdm(range(cfg.n_epochs)):
         fm.model.train()
         train_loss = 0.0
         n_train = 0
@@ -88,16 +88,26 @@ def train(cfg: FMConfig) -> FlowMatching:
             best_val = val_loss
             fm.save()
 
-        if epoch % 10 == 0 or epoch == cfg.n_epochs - 1:
-            print(
-                f"epoch {epoch:4d} | train {train_loss:.4f} "
-                f"| val {val_loss:.4f} | best {best_val:.4f}"
-            )
+        # if epoch % 10 == 0 or epoch == cfg.n_epochs - 1:
+        #     print(
+        #         f"epoch {epoch:4d} | train {train_loss:.4f} "
+        #         f"| val {val_loss:.4f} | best {best_val:.4f}"
+        #     )
 
     fm.load()
     return fm
 
 if __name__ == "__main__":
-    cfg = FMConfig(robot_name="kuka_iiwa_14")
+    parser = argparse.ArgumentParser(description="Training flow-matching model")
+    parser.add_argument(
+        "--robot_name",
+        type=str,
+        default="3R",
+        help="robot name in ROBOT_CONFIGS",
+    )
+    args = parser.parse_args()
+
+
+    cfg = FMConfig(robot_name=args.robot_name)
     fm = train(cfg)
 
