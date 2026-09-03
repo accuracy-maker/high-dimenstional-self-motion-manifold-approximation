@@ -8,6 +8,7 @@ This is the main file that assembles:
 import time
 import argparse
 import pickle
+import json 
 from pathlib import Path
 import numpy as np
 
@@ -151,14 +152,34 @@ def main():
         bundle = train_cluster_networks(grid, keep, name=args.robot_name, config=cfg,
                                         output_root=folder_path)
         print(f"[train] done in {time.time()-t0:.0f}s -> {folder_path}/{args.robot_name}", flush=True)
+        time_till_training = time.time() - t_all
+        print(f"time consumed untill training from start is: {time_till_training:.2f}s")
 
     #---------------------------------------------------------
     if args.stage in ("all", "evaluate"):
+
         section("4. evaluation")
+
         rng = np.random.default_rng(args.seed)
 
+        # log results by dict and save it as json
+        eval_results = {
+            "raw_ep": 0.0,
+            "raw_eo": 0.0,
+            "raw_err": 0.0,
+            "refined_ep": 0.0,
+            "refined_eo": 0.0,
+            "refined_err": 0.0,
+            "raw_eval_time": 0.0,
+            "refine_time": 0.0,
+            "eval_time": 0.0,
+            "time_till_training": time_till_training
+        }
+
         if args.robot_name == "3R":
+
             xs, ys = [], []
+
             while len(xs) < args.n_evals:
                 n_needed = args.n_evals - len(xs)
                 cx = rng.uniform(*args.x_range, int(n_needed * 1.4) + 16)
@@ -166,79 +187,287 @@ def main():
                 keep = cx ** 2 + cy ** 2 <= 3.0 ** 2
                 xs.extend(cx[keep][:n_needed])
                 ys.extend(cy[keep][:n_needed])
+
             xs, ys = np.array(xs), np.array(ys)
 
             x_rep_chunks, q_raw_chunks = [], []
+
             n_ok = 0
+
+            time_start = time.time()
+
             for i, (x, y) in enumerate(zip(xs, ys)):
                 T = np.eye(4)
                 T[0, 3], T[1, 3] = x, y
+
                 ws = bundle(T, samples=args.samples)
+
                 if ws.status.name != "OK":
                     continue
+
                 n_ok += 1
-                q = np.concatenate([b.data.astype(float) for b in ws.data], axis=0)
-                x_rep_chunks.append(np.tile([x, y], (q.shape[0], 1)))
+
+                q = np.concatenate(
+                    [b.data.astype(float) for b in ws.data],
+                    axis=0
+                )
+
+                x_rep_chunks.append(
+                    np.tile([x, y], (q.shape[0], 1))
+                )
                 q_raw_chunks.append(q)
+
                 if (i + 1) % 2000 == 0:
                     print(f"  ...{i + 1}/{args.n_evals} targets")
+
             x_rep = np.concatenate(x_rep_chunks)
             q_raw = np.concatenate(q_raw_chunks)
 
-            T_target = np.tile(np.eye(4), (q_raw.shape[0], 1, 1))
+            T_target = np.tile(
+                np.eye(4),
+                (q_raw.shape[0], 1, 1)
+            )
             T_target[:, 0, 3] = x_rep[:, 0]
             T_target[:, 1, 3] = x_rep[:, 1]
 
-            ep, _ = robot.bk.fk_error_pct(q_raw, T_target)
+            ep, _ = robot.bk.fk_error_pct(
+                q_raw,
+                T_target
+            )
+
+            raw_eval_time = time.time() - time_start
+
             # print(f"ep mean: {ep.mean()} | ep min: {ep.min()}")
             err_pct = np.maximum(ep * 100.0, 1e-16)
-            print(f"Fourier-series SMM raw output ({n_ok}/{args.n_evals} reachable targets, "
-                    f"{q_raw.shape[0]} configs): mean {err_pct.mean():.3g}% | "
-                    f"median {np.median(err_pct):.3g}% | max {err_pct.max():.3g}%")
 
-            q_corrected = robot.bk.ik_correct(q_raw, T_target, iters=args.n_correct)
-            ep_c, _ = robot.bk.fk_error_pct(q_corrected, T_target)
-            err_corrected_pct = np.maximum(ep_c * 100.0, 1e-16)
-            print(f"  + {args.n_correct} Jacobian IK-correction steps: "
-                    f"mean {err_corrected_pct.mean():.3g}% | median {np.median(err_corrected_pct):.3g}% | "
-                    f"max {err_corrected_pct.max():.3g}%")
+            print(
+                f"Fourier-series SMM raw output "
+                f"({n_ok}/{args.n_evals} reachable targets, "
+                f"{q_raw.shape[0]} configs): "
+                f"mean {err_pct.mean():.3g}% | "
+                f"median {np.median(err_pct):.3g}% | "
+                f"max {err_pct.max():.3g}%"
+            )
+
+            time_start = time.time()
+
+            q_corrected = robot.bk.ik_correct(
+                q_raw,
+                T_target,
+                iters=args.n_correct
+            )
+
+            refine_time = time.time() - time_start
+
+            ep_c, _ = robot.bk.fk_error_pct(
+                q_corrected,
+                T_target
+            )
+
+            err_corrected_pct = np.maximum(
+                ep_c * 100.0,
+                1e-16
+            )
+
+            print(
+                f"  + {args.n_correct} Jacobian IK-correction steps: "
+                f"mean {err_corrected_pct.mean():.3g}% | "
+                f"median {np.median(err_corrected_pct):.3g}% | "
+                f"max {err_corrected_pct.max():.3g}%"
+            )
+
+            eval_results["raw_ep"] = float(ep.mean())
+            eval_results["raw_eo"] = 0.0
+            eval_results["raw_err"] = float(ep.mean())
+
+            eval_results["refined_ep"] = float(ep_c.mean())
+            eval_results["refined_eo"] = 0.0
+            eval_results["refined_err"] = float(ep_c.mean())
+
+            eval_results["raw_eval_time"] = float(raw_eval_time)
+            eval_results["refine_time"] = float(refine_time)
+            eval_results["eval_time"] = float(
+                raw_eval_time + refine_time
+            )
 
         elif args.robot_name in ("panda", "iiwa"):
+
             # generate target samples
-            x = rng.uniform(*args.x_range, size=args.n_evals)
-            z = rng.uniform(*args.z_range, size=args.n_evals)
-            alpha = rng.uniform(0, 2 * np.pi, size=args.n_evals)
-            v = rng.normal(size=(args.n_evals, 3))
-            v /= np.linalg.norm(v, axis=1, keepdims=True)
-            roll = rng.uniform(-np.pi, np.pi, size=args.n_evals)
-            Ts = np.empty((args.n_evals, 4, 4))
+            x = rng.uniform(
+                *args.x_range,
+                size=args.n_evals
+            )
+            z = rng.uniform(
+                *args.z_range,
+                size=args.n_evals
+            )
+            alpha = rng.uniform(
+                0,
+                2 * np.pi,
+                size=args.n_evals
+            )
+
+            v = rng.normal(
+                size=(args.n_evals, 3)
+            )
+            v /= np.linalg.norm(
+                v,
+                axis=1,
+                keepdims=True
+            )
+
+            roll = rng.uniform(
+                -np.pi,
+                np.pi,
+                size=args.n_evals
+            )
+
+            Ts = np.empty(
+                (args.n_evals, 4, 4)
+            )
+
             for i in range(args.n_evals):
-                R = canonical_roll_frame(v[i]) @ rotz(roll[i])
-                p = np.array([x[i] * np.cos(alpha[i]), x[i] * np.sin(alpha[i]), z[i]])
+                R = (
+                    canonical_roll_frame(v[i])
+                    @ rotz(roll[i])
+                )
+
+                p = np.array([
+                    x[i] * np.cos(alpha[i]),
+                    x[i] * np.sin(alpha[i]),
+                    z[i]
+                ])
+
                 Ts[i] = SE3(R, p)
 
             # qs = np.empty((args.n_evals,  7))
             # generate qs
             ep, eo = [], []
 
+            q_raw_chunks = []
+            T_target_chunks = []
+
+            n_ok = 0
+
+            time_start = time.time()
+
             for i, T in enumerate(Ts):
+
                 # print(f"T shape: {T.shape}")
-                ws = bundle(T, samples=args.samples)
-                q = np.concatenate([b.angle.astype(float) for b in ws.data], axis=0)
+                ws = bundle(
+                    T,
+                    samples=args.samples
+                )
+
+                if ws.status.name != "OK":
+                    continue
+
+                n_ok += 1
+
+                q = np.concatenate(
+                    [
+                        b.angle.astype(float)
+                        for b in ws.data
+                    ],
+                    axis=0
+                )
 
                 # repeat T_rep
-                T_rep = np.tile(np.eye(4), (q.shape[0], 1, 1))
+                T_rep = np.tile(
+                    T[None, :, :],
+                    (q.shape[0], 1, 1)
+                )
+
                 # print(f"q shape: {q.shape}")
                 # print(f"T_rep shape: {T_rep.shape}")
                 # qs[i,:] = q
-                ep_i, eo_i = robot.bk.fk_error_pct(q, T_rep)
+                ep_i, eo_i = robot.bk.fk_error_pct(
+                    q,
+                    T_rep
+                )
+
                 # print(f"target {i}, ep = {ep.mean() :.2f}, eo = {eo.mean() :.2f}")
                 ep.append(ep_i.mean())
                 eo.append(eo_i.mean())
 
-            err = 0.5 * (np.mean(ep) + np.mean(eo))
-            print(f"pos error mean {np.mean(ep) :.2f} | ori error mean: {np.mean(eo) :.2f} | overall error: {err :.2f}")
+                q_raw_chunks.append(q)
+                T_target_chunks.append(T_rep)
 
+            raw_eval_time = time.time() - time_start
+
+            raw_ep = np.mean(ep)
+            raw_eo = np.mean(eo)
+            raw_err = 0.5 * (
+                raw_ep + raw_eo
+            )
+
+            print(
+                f"pos error mean {raw_ep:.2f} | "
+                f"ori error mean: {raw_eo:.2f} | "
+                f"overall error: {raw_err:.2f}"
+            )
+
+            q_raw = np.concatenate(
+                q_raw_chunks,
+                axis=0
+            )
+
+            T_target = np.concatenate(
+                T_target_chunks,
+                axis=0
+            )
+
+            time_start = time.time()
+
+            q_corrected = robot.bk.ik_correct(
+                q_raw,
+                T_target,
+                iters=args.n_correct
+            )
+
+            refine_time = time.time() - time_start
+
+            ep_c, eo_c = robot.bk.fk_error_pct(
+                q_corrected,
+                T_target
+            )
+
+            refined_ep = ep_c.mean()
+            refined_eo = eo_c.mean()
+            refined_err = 0.5 * (
+                refined_ep + refined_eo
+            )
+
+            print(
+                f"  + {args.n_correct} Jacobian IK-correction steps: "
+                f"pos error mean {refined_ep:.2f} | "
+                f"ori error mean: {refined_eo:.2f} | "
+                f"overall error: {refined_err:.2f}"
+            )
+
+            eval_results["raw_ep"] = float(raw_ep)
+            eval_results["raw_eo"] = float(raw_eo)
+            eval_results["raw_err"] = float(raw_err)
+
+            eval_results["refined_ep"] = float(refined_ep)
+            eval_results["refined_eo"] = float(refined_eo)
+            eval_results["refined_err"] = float(refined_err)
+
+            eval_results["raw_eval_time"] = float(raw_eval_time)
+            eval_results["refine_time"] = float(refine_time)
+            eval_results["eval_time"] = float(
+                raw_eval_time + refine_time
+            )
+
+        print("evaluation results:\n")
+        print(eval_results)
+        # save it as json
+        result_path = folder_path / f"{args.robot_name}_{args.task}_eval_results.json"
+
+        with open(result_path, "w") as f:
+            json.dump(eval_results, f, indent=4)
+
+        print(f"evaluation results saved to {result_path}")
 
 
     #---------------------------------------------------------

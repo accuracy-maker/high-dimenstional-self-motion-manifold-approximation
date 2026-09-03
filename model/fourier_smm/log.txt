@@ -1,0 +1,146 @@
+root path: /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm
+Fast SMM Robot created
+Creating: /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/3R_planar
+folder path is: /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/3R_planar
+
+--- 1. grid and SMM data ----------------------------------------
+[grid] 1201 nodes  ((1201, 1))  1200 edges
+[smm] 1201/1201  12s elapsed  0.010 s/node  eta 0s
+[smm] done in 12s  node status: {'SINGULAR': 2, 'OK-1': 796, 'OK-2': 401, 'NONE': 2}
+
+--- 2. clustering and homotopy grouping -------------------------
+[cluster] 3 clusters in 2s  sizes [401, 399, 397]
+
+--- 3. training -------------------------------------------------
+[train] training on 3/3 clusters (>=8 nodes)
+saving models to /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/3R_planar/3R
+cluster 0: 399 samples
+pytorch-minimize not installed
+cluster 0: trained (loss=0.114271)
+cluster 1: 401 samples
+pytorch-minimize not installed
+cluster 1: trained (loss=11.125183)
+cluster 2: 397 samples
+pytorch-minimize not installed
+cluster 2: trained (loss=0.098490)
+training classifier
+pytorch-minimize not installed
+classifier trained (loss=0.309714)
+bundle saved to /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/3R_planar/3R/bundle.pt
+[train] done in 64s -> /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/3R_planar/3R
+time consumed untill training from start is: 78.72s
+
+--- 4. evaluation -----------------------------------------------
+  ...2000/10000 targets
+  ...4000/10000 targets
+  ...6000/10000 targets
+  ...8000/10000 targets
+  ...10000/10000 targets
+Fourier-series SMM raw output (10000/10000 reachable targets, 1417088 configs): mean 0.453% | median 0.317% | max 11.2%
+  + 3 Jacobian IK-correction steps: mean 6.16e-05% | median 3.33e-14% | max 20.5%
+evaluation results:
+
+{'raw_ep': 0.0045265469819576725, 'raw_eo': 0.0, 'raw_err': 0.0045265469819576725, 'refined_ep': 6.156847685943631e-07, 'refined_eo': 0.0, 'refined_err': 6.156847685943631e-07, 'raw_eval_time': 4.377884149551392, 'refine_time': 4.984055995941162, 'eval_time': 9.361940145492554, 'time_till_training': 78.71700978279114}
+evaluation results saved to /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/3R_planar/3R_planar_eval_results.json
+
+--- 5. plotting -------------------------------------------------
+[all] total 90s
+root path: /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm
+Fast SMM Robot created
+Creating: /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/panda_pose
+folder path is: /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/panda_pose
+
+--- 1. grid and SMM data ----------------------------------------
+[grid] 38304 nodes  ((21, 1, 19, 96))  205236 edges
+[smm] 5000/38304  122s elapsed  0.024 s/node  eta 811s
+[smm] 10000/38304  473s elapsed  0.047 s/node  eta 1337s
+[smm] 15000/38304  1160s elapsed  0.077 s/node  eta 1803s
+[smm] 20000/38304  2044s elapsed  0.102 s/node  eta 1871s
+[smm] 25000/38304  2916s elapsed  0.117 s/node  eta 1552s
+[smm] 30000/38304  3477s elapsed  0.116 s/node  eta 962s
+[smm] 35000/38304  3711s elapsed  0.106 s/node  eta 350s
+[smm] 38304/38304  3777s elapsed  0.099 s/node  eta 0s
+[smm] done in 3777s  node status: {'NONE': 20112, 'OK-4': 5741, 'SINGULAR': 495, 'OK-8': 11449, 'OK-3': 57, 'OK-7': 444, 'OK-9': 1, 'OK-6': 5}
+
+--- 2. clustering and homotopy grouping -------------------------
+[cluster] 442 clusters in 1343s  sizes [11449, 5592, 61, 58, 30, 5, 4, 3, 3, 3, 3, 3]...
+
+--- 3. training -------------------------------------------------
+[train] training on 5/442 clusters (>=8 nodes)
+saving models to /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/panda_pose/panda
+cluster 0: 5592 samples
+pytorch-minimize not installed
+cluster 0: trained (loss=2.256464)
+cluster 1: 11449 samples
+pytorch-minimize not installed
+cluster 1: trained (loss=5.512375)
+cluster 2: 61 samples
+pytorch-minimize not installed
+cluster 2: trained (loss=1.227123)
+cluster 3: 30 samples
+pytorch-minimize not installed
+cluster 3: trained (loss=0.699796)
+cluster 4: 58 samples
+pytorch-minimize not installed
+cluster 4: trained (loss=1.095288)
+training classifier
+pytorch-minimize not installed
+classifier trained (loss=0.006042)
+bundle saved to /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/panda_pose/panda/bundle.pt
+[train] done in 939s -> /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/panda_pose/panda
+time consumed untill training from start is: 6063.59s
+
+--- 4. evaluation -----------------------------------------------
+pos error mean 0.17 | ori error mean: 0.48 | overall error: 0.32
+  + 3 Jacobian IK-correction steps: pos error mean 0.28 | ori error mean: 0.29 | overall error: 0.29
+evaluation results:
+
+{'raw_ep': 0.16885567651901565, 'raw_eo': 0.4790806752513467, 'raw_err': 0.3239681758851812, 'refined_ep': 0.2796362033953235, 'refined_eo': 0.2944235119629533, 'refined_err': 0.2870298576791384, 'raw_eval_time': 16.083719491958618, 'refine_time': 60.12135553359985, 'eval_time': 76.20507502555847, 'time_till_training': 6063.59313583374}
+evaluation results saved to /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/panda_pose/panda_pose_eval_results.json
+
+--- 5. plotting -------------------------------------------------
+[all] total 6154s
+root path: /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm
+Fast SMM Robot created
+Creating: /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/iiwa_pose
+folder path is: /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/iiwa_pose
+
+--- 1. grid and SMM data ----------------------------------------
+[grid] 42336 nodes  ((21, 1, 21, 96))  227052 edges
+[smm] 5000/42336  138s elapsed  0.028 s/node  eta 1034s
+[smm] 10000/42336  677s elapsed  0.068 s/node  eta 2189s
+[smm] 15000/42336  1506s elapsed  0.100 s/node  eta 2744s
+[smm] 20000/42336  2504s elapsed  0.125 s/node  eta 2797s
+[smm] 25000/42336  3428s elapsed  0.137 s/node  eta 2377s
+[smm] 30000/42336  4388s elapsed  0.146 s/node  eta 1805s
+[smm] 35000/42336  5029s elapsed  0.144 s/node  eta 1054s
+[smm] 40000/42336  5352s elapsed  0.134 s/node  eta 313s
+[smm] 42336/42336  5393s elapsed  0.127 s/node  eta 0s
+[smm] done in 5393s  node status: {'NONE': 22220, 'OK-8': 19278, 'OK-7': 715, 'SINGULAR': 111, 'OK-6': 5, 'OK-4': 6, 'OK-5': 1}
+
+--- 2. clustering and homotopy grouping -------------------------
+[cluster] 584 clusters in 2066s  sizes [19278, 6, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3]...
+
+--- 3. training -------------------------------------------------
+[train] training on 1/584 clusters (>=8 nodes)
+saving models to /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/iiwa_pose/iiwa
+cluster 0: 19278 samples
+pytorch-minimize not installed
+cluster 0: trained (loss=2.042880)
+training classifier
+pytorch-minimize not installed
+classifier trained (loss=0.000025)
+bundle saved to /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/iiwa_pose/iiwa/bundle.pt
+[train] done in 1184s -> /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/iiwa_pose/iiwa
+time consumed untill training from start is: 8648.22s
+
+--- 4. evaluation -----------------------------------------------
+pos error mean 0.18 | ori error mean: 0.43 | overall error: 0.30
+  + 3 Jacobian IK-correction steps: pos error mean 0.32 | ori error mean: 0.26 | overall error: 0.29
+evaluation results:
+
+{'raw_ep': 0.176069599534415, 'raw_eo': 0.4291758862080884, 'raw_err': 0.3026227428712517, 'refined_ep': 0.31622769643238274, 'refined_eo': 0.2559826831074937, 'refined_err': 0.28610518976993826, 'raw_eval_time': 20.33193874359131, 'refine_time': 98.58804655075073, 'eval_time': 118.91998529434204, 'time_till_training': 8648.220662593842}
+evaluation results saved to /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm/results/iiwa_pose/iiwa_pose_eval_results.json
+
+--- 5. plotting -------------------------------------------------
+[all] total 8796s
