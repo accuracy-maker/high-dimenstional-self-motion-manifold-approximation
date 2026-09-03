@@ -73,5 +73,9 @@ Fourier-series SMM raw output (10000/10000 reachable targets, 1437312 configs): 
 ```
 
 ## 7R Panda for 6-D pose motion
+![overlay_figure](md_figs/panda_pose.png)
+
+## 7R iiwa14 for 6-D pose motion
+![overlay_figure](md_figs/iiwa_pose.png)
 
 

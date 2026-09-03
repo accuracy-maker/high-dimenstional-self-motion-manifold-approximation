@@ -51,7 +51,7 @@ def mujoco_jaco(model, data, q):
     return J
 
 n_samples = 50
-xml_path = "/home/z5506409/high-dimenstional-self-motion-manifold-approximation/assets/kuka_iiwa_14/iiwa14.xml"
+xml_path = "/home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/kuka_iiwa_14/iiwa14.xml"
 
 
 robot = iiwa()
@@ -70,3 +70,6 @@ e_J = max(np.abs(mujoco_jaco(model,data,q) - bk.jacobian(q[None])[0]).max() for 
 print(f"max |FK  - mujoco FK iiwa|    = {e_fk:.2e}")
 print(f"max |J   - mujoco jaco iiwa|  = {e_J:.2e}")
 
+section("workspace limits")
+limits = robot.workspace_limits()
+print(f"workspace limits: {limits}")
