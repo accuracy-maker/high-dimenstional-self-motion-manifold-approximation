@@ -33,3 +33,8 @@ you can see that all samples from flow-matching model lie on the correct SMMs co
 
 ## 4-D Self-Motion Manifold
 It appears when 7DoF robot does positioning jobs
+| File | Video | Description |
+|------|-------|-------------|
+|`iiwa_7r_4d_smm.py`|![image info](figures/kuka_4d_smm.gif)|sampling from 4-D SMM curves|
+
+
