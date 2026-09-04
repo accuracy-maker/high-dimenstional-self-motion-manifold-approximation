@@ -45,7 +45,7 @@ class FMConfig:
     # ckpt
     @property
     def ckpt_path(self) -> Path:
-        return ROOT_PATH / "training/checkpoints" / f"{self.robot_name}.pt"
+        return ROOT_PATH / "training/checkpoints" / f"{self.robot_name}_{self.load_robot.task}.pt"
 
     # device
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
@@ -123,6 +123,7 @@ class VelocityField(nn.Module):
         self.time_emb = TimeEmbedding(cfg.time_emb_dim)
 
         in_dim = robot.q_dim + cfg.time_emb_dim + robot.x_dim
+        # print(f"robot.x_dim: {robot.x_dim}")
 
         layers = [nn.Linear(in_dim, cfg.hidden_dim), nn.SiLU()]
         for _ in range(cfg.n_layers - 1):
@@ -171,6 +172,11 @@ class FlowMatching:
             x = x[None, :]
 
         # normalize xs
+        if robot.task == "position":
+            self.norm["x_c"] = self.norm["x_c"][:3]
+            self.norm["x_h"] = self.norm["x_h"][:3]
+            # print(f"x_c shape: {self.norm['x_c'].shape}")
+
         x = ((x - self.norm["x_c"]) / self.norm["x_h"]).repeat_interleave(n_samples, dim = 0)
 
         q = torch.randn(x.shape[0], robot.q_dim, device=self.cfg.device)

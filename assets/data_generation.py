@@ -113,6 +113,18 @@ ROBOT_CONFIGS = {
         ee_type="site",
         ee_name="attachment_site",
     ),
+    "kuka_iiwa_14_position": RobotConfig(
+        name="kuka_iiwa_14",
+        backend="mujoco",
+        robot=mujoco.MjModel.from_xml_path(str(ROOT_PATH / "kuka_iiwa_14" / "iiwa14.xml")),
+        xml_path=ROOT_PATH / "kuka_iiwa_14" / "iiwa14.xml",
+        save_path=ROOT_PATH / "7R" / "kuka_iiwa_14" / "7r_pose.npz",
+        task="position",
+        x_max=1.2,
+        joint_names=tuple(f"joint{i}" for i in range(1, 8)),
+        ee_type="site",
+        ee_name="attachment_site",
+    ),
 }
 
 
