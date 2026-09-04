@@ -2,7 +2,7 @@ import numpy as np
 
 from realtime_smm import DHLink, TaskSpace
 
-from fast_smm import FastRobot
+from ..fast_smm import FastRobot
 
 LENGTHS = (1.0, 1.0, 1.0)
 

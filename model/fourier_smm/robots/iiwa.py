@@ -4,8 +4,8 @@ Standard DH table of iiwa14
 
 import numpy as np
 from realtime_smm import DHLink, TaskSpace
-from fast_smm import FastRobot
-from robots.panda import rotz, SE3
+from ..fast_smm import FastRobot
+from ..robots.panda import rotz, SE3
 
 def iiwa14_standard_dh():
     """

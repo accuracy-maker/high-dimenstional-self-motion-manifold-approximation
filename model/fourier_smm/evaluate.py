@@ -17,8 +17,8 @@ import numpy as np
 from realtime_smm.helpers.robot import Robot as RefRobot
 from realtime_smm.learning import SMMNetworkBundle
 
-from pipeline import TASKConfig
-from robots.planar3r import planar3r
+from .pipeline import TASKConfig
+from .robots.planar3r import planar3r
 
 
 robot_name = "3R"

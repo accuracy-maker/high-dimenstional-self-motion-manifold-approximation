@@ -1,26 +1,39 @@
 #!/bin/bash
+set -euo pipefail
 
+STAGE="${1:-all}"
 LOG_FILE="log.txt"
+
+case "$STAGE" in
+    data|train|eval|all) ;;
+    *)
+        echo "Usage: $0 [data|train|eval|all]" >&2
+        exit 1
+        ;;
+esac
 
 : > "$LOG_FILE"
 
-# data generation
-python -m assets.data_generation --robot 3R >> "$LOG_FILE"
+# robot:task
+ROBOTS=(
+    "3R:planar"
+    "franka_emika_panda:pose"
+    "kuka_iiwa_14:pose"
+)
 
-python -m assets.data_generation --robot franka_emika_panda >> "$LOG_FILE"
+for entry in "${ROBOTS[@]}"; do
+    robot="${entry%%:*}"
+    task="${entry##*:}"
 
-python -m assets.data_generation --robot kuka_iiwa_14 >> "$LOG_FILE"
+    if [[ "$STAGE" == "data" || "$STAGE" == "all" ]]; then
+        python -m assets.data_generation --robot "$robot" >> "$LOG_FILE" 2>&1
+    fi
 
-# model training
-python -m training.train --robot_name 3R >> "$LOG_FILE"
+    if [[ "$STAGE" == "train" || "$STAGE" == "all" ]]; then
+        python -m training.train --robot_name "$robot" >> "$LOG_FILE" 2>&1
+    fi
 
-python -m training.train --robot_name franka_emika_panda >> "$LOG_FILE"
-
-python -m training.train --robot_name kuka_iiwa_14 >> "$LOG_FILE"
-
-# model evaluation
-python -m evaluation.eval_3r_fm >> "$LOG_FILE"
-
-python -m evaluation.eval_7r_pose --robot_name franka_emika_panda >> "$LOG_FILE"
-
-python -m evaluation.eval_7r_pose --robot_name kuka_iiwa_14 >> "$LOG_FILE"
+    if [[ "$STAGE" == "eval" || "$STAGE" == "all" ]]; then
+        python -m evaluation.eval --robot_name "$robot" --task "$task" >> "$LOG_FILE" 2>&1
+    fi
+done

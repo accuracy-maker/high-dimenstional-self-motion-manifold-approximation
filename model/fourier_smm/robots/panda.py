@@ -5,7 +5,7 @@ standard DH parameters for Franka Emika Panda Robot
 
 import numpy as np
 from realtime_smm import DHLink, TaskSpace
-from fast_smm import FastRobot
+from ..fast_smm import FastRobot
 
 """
 modified-DH table of roboticstoolbox.models.DH.Panda ...

@@ -290,7 +290,7 @@ def main():
                 raw_eval_time + refine_time
             )
 
-        elif args.robot_name in ("panda", "iiwa"):
+        elif args.robot_name in ("franka_emika_panda", "kuka_iiwa_14"):
 
             # generate target samples
             x = rng.uniform(

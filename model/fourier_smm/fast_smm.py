@@ -34,7 +34,7 @@ import numpy as np
 from realtime_smm.helpers.robot import Robot
 from realtime_smm.helpers.types import SMM, SMMStatus, WorkspaceSMMs
 
-from batch_kin import BatchDH
+from .batch_kin import BatchDH
 
 # some help functions
 def wrap(x):

@@ -20,9 +20,9 @@ from realtime_smm.grid import Grid
 from realtime_smm.learning import SMMNetworkBundle, train_cluster_networks
 from realtime_smm.postprocess_grid import postprocess_grid
 
-from robots.planar3r import planar3r
-from robots.panda import panda, canonical_roll_frame, fibonacci_sphere, roll_offset, rotz
-from robots.iiwa import iiwa
+from .robots.planar3r import planar3r
+from .robots.panda import panda, canonical_roll_frame, fibonacci_sphere, roll_offset, rotz
+from .robots.iiwa import iiwa
 
 ROOT_PATH = Path(__file__).resolve().parents[0]
 print(f"root path: {ROOT_PATH}")
@@ -37,10 +37,10 @@ class TASKConfig:
         if self.robot_name == "3R":
             robot = planar3r()
 
-        elif self.robot_name == "panda":
+        elif self.robot_name == "franka_emika_panda":
             robot = panda()
 
-        elif self.robot_name == "iiwa":
+        elif self.robot_name == "kuka_iiwa_14":
             robot = iiwa()
 
         else:
@@ -57,14 +57,14 @@ class TASKConfig:
             else:
                 raise NameError("for 3R, only support planar task")
 
-        elif self.robot_name == "panda":
+        elif self.robot_name == "franka_emika_panda":
             if self.task == "pose":
                 TASKSPACE = TaskSpace.X | TaskSpace.Y | TaskSpace.Z | TaskSpace.SO3
                 return TASKSPACE
             else:
                 raise NameError("task is not valid")
 
-        elif self.robot_name == "iiwa":
+        elif self.robot_name == "kuka_iiwa_14":
             if self.task == "pose":
                 TASKSPACE = TaskSpace.X | TaskSpace.Y | TaskSpace.Z | TaskSpace.SO3
                 return TASKSPACE
@@ -131,7 +131,7 @@ def build_grid(
 
         return grid
 
-    elif task_config.robot_name in ("panda", "iiwa"):
+    elif task_config.robot_name in ("franka_emika_panda", "kuka_iiwa_14"):
 
         if n_dirs is None:
             raise ValueError("n_dirs must be provided for Panda/iiwa")

@@ -24,7 +24,9 @@ class SMMTrace:
     closed: bool # if the curve is closed
     stop_reason: str
     max_position_error: float
+    mean_position_error: float
     max_orientation_error: float | None
+    mean_orientation_error: float | None
     minimum_task_singular_value: float
 
 def wrap_to_pi(angle: np.ndarray | float) -> np.ndarray:
@@ -337,7 +339,9 @@ def trace_smm_component(
             closed=closed,
             stop_reason=stop_reason,
             max_position_error=float(np.max(position_errors)),
+            mean_position_error=float(np.mean(position_errors)),
             max_orientation_error = None,
+            mean_orientation_error= None,
             minimum_task_singular_value=float(minimum_sigma),
         )
 
@@ -367,7 +371,9 @@ def trace_smm_component(
             closed=closed,
             stop_reason=stop_reason,
             max_position_error=float(np.max(position_errors)),
+            mean_position_error=float(np.mean(position_errors)),
             max_orientation_error=float(np.max(ori_errors)),
+            mean_orientation_error=float(np.mean(ori_errors)),
             minimum_task_singular_value=float(minimum_sigma),
         )
 
@@ -688,6 +694,7 @@ def generate_ik_seeds(
             seeds.append(q_solution.q)
 
     return seeds
+
 
 # search all SMM components
 def search_smm_components(
