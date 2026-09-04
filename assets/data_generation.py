@@ -101,6 +101,18 @@ ROBOT_CONFIGS = {
         ee_type="site",      # panda.xml has no attachment_site, use the hand body frame
         ee_name="attachment_site",
     ),
+    "franka_emika_panda_position": RobotConfig(
+        name="franka_emika_panda",
+        backend="mujoco",
+        robot=mujoco.MjModel.from_xml_path(str(ROOT_PATH / "franka_emika_panda" / "panda_nohand.xml")),
+        xml_path=ROOT_PATH / "franka_emika_panda" / "panda.xml",
+        save_path=ROOT_PATH / "7R" / "franka_emika_panda" / "7r_pose.npz",
+        task="position",
+        x_max=1.2,
+        joint_names=tuple(f"joint{i}" for i in range(1, 8)),
+        ee_type="site",      # panda.xml has no attachment_site, use the hand body frame
+        ee_name="attachment_site",
+    ),
     "kuka_iiwa_14": RobotConfig(
         name="kuka_iiwa_14",
         backend="mujoco",

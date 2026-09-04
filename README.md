@@ -36,5 +36,7 @@ It appears when 7DoF robot does positioning jobs
 | File | Video | Description |
 |------|-------|-------------|
 |`iiwa_7r_4d_smm.py`|![image info](figures/kuka_4d_smm.gif)|sampling from 4-D SMM curves|
+|`panda_7r_4d_smm.py`|![image info](figures/panda_4d_smm.gif)|sampling from 4-D SMM curves|
+
 
 
