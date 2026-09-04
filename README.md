@@ -18,3 +18,9 @@ chmod +x run.sh
 ![7R iiwa pose](evaluation/kuka_iiwa_14_pose.png)
 
 you can see that all samples from flow-matching model lie on the correct SMMs computed by ODE method. It's a subset of 1-D SMM curves as it's contrainted by **joint limits**
+
+## Generative IK Solutions
+| File | Video | Description |
+|------|-------|-------------|
+|`iiwa_7r_pose.py`|![image info](figures/kuka.gif)|generative ik solutions|
+|`panda_7r_pose.py`|![image info](figures/panda.gif)|generative ik solutions|

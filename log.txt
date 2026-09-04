@@ -1,71 +1,43 @@
-root path: /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm
-FM configs are loaded
-Robot configs are loaded
-data is loaded from /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/3R/planar3r.npz
-model loaded
-pos err mean: 8.834427396348698e-11
-ODE inference time per sample: 0.16331
-FM inference time per sample: 0.36547
-Fourier inference time per sample: 0.01668
+3R manipulator is loaded (rtb)
+DHRobot: Planar 3 link, 3 joints (RRR), dynamics, standard DH parameters
+┌─────┬────┬────┬──────┐
+│ θⱼ  │ dⱼ │ aⱼ │  ⍺ⱼ  │
+├─────┼────┼────┼──────┤
+│  q1 │  0 │  1 │ 0.0° │
+│  q2 │  0 │  1 │ 0.0° │
+│  q3 │  0 │  1 │ 0.0° │
+└─────┴────┴────┴──────┘
 
-metrics:
-ep_ode: 2.944809e-11
-ep_fm: 1.438748e-03
-ep_fourier: 5.126812e-03
-eo_ode: 0.000000e+00
-eo_fm: 0.000000e+00
-eo_fourier: 0.000000e+00
-err_ode: 2.944809e-11
-err_fm: 1.438748e-03
-err_fourier: 5.126812e-03
-inference_speed_ode: 1.633134e-01
-inference_speed_fm: 1.668429e-02
-inference_speed_fourier: 0.000000e+00
-root path: /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm
-FM configs are loaded
-Robot configs are loaded
-data is loaded from /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/7R/franka_emika_panda/7r_pose.npz
-model loaded
-franka_emika_panda FK:   0%|          | 0/1965 [00:00<?, ?it/s]franka_emika_panda FK: 100%|██████████| 1965/1965 [00:00<00:00, 421662.10it/s]
-time = 5.641 ms
-ODE inference time per sample: 7.29739
-FM inference time per sample: 0.54758
-Fourier inference time per sample: 0.04880
+┌──────┬─────┬─────┬─────┐
+│ name │ q0  │ q1  │ q2  │
+├──────┼─────┼─────┼─────┤
+│   qr │  0° │  0° │  0° │
+│   qz │  0° │  0° │  0° │
+└──────┴─────┴─────┴─────┘
 
-metrics:
-ep_ode: 4.156083e-12
-ep_fm: 6.319416e-03
-ep_fourier: 1.336626e-01
-eo_ode: 2.366793e-08
-eo_fm: 1.401939e-02
-eo_fourier: 7.494783e-01
-err_ode: 1.183604e-08
-err_fm: 1.016940e-02
-err_fourier: 4.415704e-01
-inference_speed_ode: 7.297394e+00
-inference_speed_fm: 4.879713e-02
-inference_speed_fourier: 0.000000e+00
-root path: /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm
-FM configs are loaded
-Robot configs are loaded
-data is loaded from /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/7R/kuka_iiwa_14/7r_pose.npz
-model loaded
-kuka_iiwa_14 FK:   0%|          | 0/1138 [00:00<?, ?it/s]kuka_iiwa_14 FK: 100%|██████████| 1138/1138 [00:00<00:00, 425791.08it/s]
-time = 3.526 ms
-ODE inference time per sample: 8.28536
-FM inference time per sample: 0.29909
-Fourier inference time per sample: 0.04872
-
-metrics:
-ep_ode: 2.279295e-12
-ep_fm: 1.065870e-02
-ep_fourier: 1.992953e-01
-eo_ode: 2.533592e-08
-eo_fm: 1.710525e-02
-eo_fourier: 4.697292e-01
-err_ode: 1.266910e-08
-err_fm: 1.388198e-02
-err_fourier: 3.345123e-01
-inference_speed_ode: 8.285360e+00
-inference_speed_fm: 4.872465e-02
-inference_speed_fourier: 0.000000e+00
+minimum joint limits in rad:
+[-3.14159265 -3.14159265 -3.14159265]
+maximum joint limits in rad:
+[3.14159265 3.14159265 3.14159265]
+dataset will be saved at: /home/kye/high-dimenstional-self-motion-manifold-approximation/assets/3R/planar3r.npz
+Saved 2000000 samples to /home/kye/high-dimenstional-self-motion-manifold-approximation/assets/3R/planar3r.npz
+franka_emika_panda manipulator is loaded (mujoco)
+xml path: /home/kye/high-dimenstional-self-motion-manifold-approximation/assets/franka_emika_panda/panda.xml
+minimum joint limits in rad:
+[-2.8973 -1.7628 -2.8973 -3.0718 -2.8973 -0.0175 -2.8973]
+maximum joint limits in rad:
+[ 2.8973  1.7628  2.8973 -0.0698  2.8973  3.7525  2.8973]
+dataset will be saved at: /home/kye/high-dimenstional-self-motion-manifold-approximation/assets/7R/franka_emika_panda/7r_pose.npz
+franka_emika_panda FK:   0%|          | 0/2000000 [00:00<?, ?it/s]franka_emika_panda FK:   1%|▏         | 28309/2000000 [00:00<00:06, 283069.35it/s]franka_emika_panda FK:   3%|▎         | 57203/2000000 [00:00<00:06, 286513.89it/s]franka_emika_panda FK:   4%|▍         | 86453/2000000 [00:00<00:06, 289238.49it/s]franka_emika_panda FK:   6%|▌         | 115532/2000000 [00:00<00:06, 289843.46it/s]franka_emika_panda FK:   7%|▋         | 144659/2000000 [00:00<00:06, 290351.72it/s]franka_emika_panda FK:   9%|▊         | 173695/2000000 [00:00<00:06, 285568.56it/s]franka_emika_panda FK:  10%|█         | 202637/2000000 [00:00<00:06, 286807.72it/s]franka_emika_panda FK:  12%|█▏        | 231586/2000000 [00:00<00:06, 287649.33it/s]franka_emika_panda FK:  13%|█▎        | 260360/2000000 [00:00<00:06, 276547.42it/s]franka_emika_panda FK:  14%|█▍        | 288834/2000000 [00:01<00:06, 278995.94it/s]franka_emika_panda FK:  16%|█▌        | 317454/2000000 [00:01<00:05, 281149.82it/s]franka_emika_panda FK:  17%|█▋        | 345676/2000000 [00:01<00:05, 281468.55it/s]franka_emika_panda FK:  19%|█▊        | 374875/2000000 [00:01<00:05, 284614.17it/s]franka_emika_panda FK:  20%|██        | 404083/2000000 [00:01<00:05, 286849.31it/s]franka_emika_panda FK:  22%|██▏       | 433320/2000000 [00:01<00:05, 288501.55it/s]franka_emika_panda FK:  23%|██▎       | 462748/2000000 [00:01<00:05, 290232.53it/s]franka_emika_panda FK:  25%|██▍       | 492037/2000000 [00:01<00:05, 291026.34it/s]franka_emika_panda FK:  26%|██▌       | 521222/2000000 [00:01<00:05, 291270.15it/s]franka_emika_panda FK:  28%|██▊       | 550387/2000000 [00:01<00:04, 291380.42it/s]franka_emika_panda FK:  29%|██▉       | 579693/2000000 [00:02<00:04, 291882.24it/s]franka_emika_panda FK:  30%|███       | 608885/2000000 [00:02<00:04, 291339.40it/s]franka_emika_panda FK:  32%|███▏      | 638123/2000000 [00:02<00:04, 291643.52it/s]franka_emika_panda FK:  33%|███▎      | 667290/2000000 [00:02<00:04, 291259.44it/s]franka_emika_panda FK:  35%|███▍      | 696466/2000000 [00:02<00:04, 291405.29it/s]franka_emika_panda FK:  36%|███▋      | 725608/2000000 [00:02<00:04, 290942.10it/s]franka_emika_panda FK:  38%|███▊      | 754703/2000000 [00:02<00:04, 290615.92it/s]franka_emika_panda FK:  39%|███▉      | 783766/2000000 [00:02<00:04, 290570.45it/s]franka_emika_panda FK:  41%|████      | 812886/2000000 [00:02<00:04, 290755.56it/s]franka_emika_panda FK:  42%|████▏     | 841962/2000000 [00:02<00:03, 290634.26it/s]franka_emika_panda FK:  44%|████▎     | 871052/2000000 [00:03<00:03, 290712.32it/s]franka_emika_panda FK:  45%|████▌     | 900124/2000000 [00:03<00:03, 290528.24it/s]franka_emika_panda FK:  46%|████▋     | 929177/2000000 [00:03<00:03, 290430.48it/s]franka_emika_panda FK:  48%|████▊     | 958303/2000000 [00:03<00:03, 290676.49it/s]franka_emika_panda FK:  49%|████▉     | 987468/2000000 [00:03<00:03, 290964.27it/s]franka_emika_panda FK:  51%|█████     | 1016665/2000000 [00:03<00:03, 291262.39it/s]franka_emika_panda FK:  52%|█████▏    | 1045982/2000000 [00:03<00:03, 291831.02it/s]franka_emika_panda FK:  54%|█████▍    | 1075166/2000000 [00:03<00:03, 291606.92it/s]franka_emika_panda FK:  55%|█████▌    | 1104371/2000000 [00:03<00:03, 291735.46it/s]franka_emika_panda FK:  57%|█████▋    | 1133545/2000000 [00:03<00:02, 291475.60it/s]franka_emika_panda FK:  58%|█████▊    | 1162693/2000000 [00:04<00:02, 289215.12it/s]franka_emika_panda FK:  60%|█████▉    | 1191695/2000000 [00:04<00:02, 289452.10it/s]franka_emika_panda FK:  61%|██████    | 1220797/2000000 [00:04<00:02, 289915.98it/s]franka_emika_panda FK:  62%|██████▏   | 1249952/2000000 [00:04<00:02, 290402.92it/s]franka_emika_panda FK:  64%|██████▍   | 1279197/2000000 [00:04<00:02, 291011.46it/s]franka_emika_panda FK:  65%|██████▌   | 1308300/2000000 [00:04<00:02, 285345.65it/s]franka_emika_panda FK:  67%|██████▋   | 1337605/2000000 [00:04<00:02, 287620.07it/s]franka_emika_panda FK:  68%|██████▊   | 1366861/2000000 [00:04<00:02, 289083.67it/s]franka_emika_panda FK:  70%|██████▉   | 1396133/2000000 [00:04<00:02, 290163.80it/s]franka_emika_panda FK:  71%|███████▏  | 1425432/2000000 [00:04<00:01, 290995.59it/s]franka_emika_panda FK:  73%|███████▎  | 1454719/2000000 [00:05<00:01, 291553.47it/s]franka_emika_panda FK:  74%|███████▍  | 1483881/2000000 [00:05<00:01, 291432.28it/s]franka_emika_panda FK:  76%|███████▌  | 1513089/2000000 [00:05<00:01, 291621.48it/s]franka_emika_panda FK:  77%|███████▋  | 1542255/2000000 [00:05<00:01, 291545.65it/s]franka_emika_panda FK:  79%|███████▊  | 1571412/2000000 [00:05<00:01, 289544.22it/s]franka_emika_panda FK:  80%|████████  | 1600371/2000000 [00:05<00:01, 289428.70it/s]franka_emika_panda FK:  81%|████████▏ | 1629662/2000000 [00:05<00:01, 290466.80it/s]franka_emika_panda FK:  83%|████████▎ | 1658712/2000000 [00:05<00:01, 289793.63it/s]franka_emika_panda FK:  84%|████████▍ | 1687694/2000000 [00:05<00:01, 289717.99it/s]franka_emika_panda FK:  86%|████████▌ | 1716845/2000000 [00:05<00:00, 290250.42it/s]franka_emika_panda FK:  87%|████████▋ | 1745947/2000000 [00:06<00:00, 290477.60it/s]franka_emika_panda FK:  89%|████████▉ | 1775032/2000000 [00:06<00:00, 290585.72it/s]franka_emika_panda FK:  90%|█████████ | 1804227/2000000 [00:06<00:00, 290991.97it/s]franka_emika_panda FK:  92%|█████████▏| 1833327/2000000 [00:06<00:00, 290767.52it/s]franka_emika_panda FK:  93%|█████████▎| 1862405/2000000 [00:06<00:00, 290634.08it/s]franka_emika_panda FK:  95%|█████████▍| 1891469/2000000 [00:06<00:00, 290387.58it/s]franka_emika_panda FK:  96%|█████████▌| 1920629/2000000 [00:06<00:00, 290726.19it/s]franka_emika_panda FK:  97%|█████████▋| 1949816/2000000 [00:06<00:00, 291064.29it/s]franka_emika_panda FK:  99%|█████████▉| 1979067/2000000 [00:06<00:00, 291494.86it/s]franka_emika_panda FK: 100%|██████████| 2000000/2000000 [00:06<00:00, 289549.72it/s]
+time = 6912.127 ms
+Saved 2000000 samples to /home/kye/high-dimenstional-self-motion-manifold-approximation/assets/7R/franka_emika_panda/7r_pose.npz
+kuka_iiwa_14 manipulator is loaded (mujoco)
+xml path: /home/kye/high-dimenstional-self-motion-manifold-approximation/assets/kuka_iiwa_14/iiwa14.xml
+minimum joint limits in rad:
+[-2.96706 -2.0944  -2.96706 -2.0944  -2.96706 -2.0944  -3.05433]
+maximum joint limits in rad:
+[2.96706 2.0944  2.96706 2.0944  2.96706 2.0944  3.05433]
+dataset will be saved at: /home/kye/high-dimenstional-self-motion-manifold-approximation/assets/7R/kuka_iiwa_14/7r_pose.npz
+kuka_iiwa_14 FK:   0%|          | 0/2000000 [00:00<?, ?it/s]kuka_iiwa_14 FK:   2%|▏         | 30009/2000000 [00:00<00:06, 300064.53it/s]kuka_iiwa_14 FK:   3%|▎         | 60827/2000000 [00:00<00:06, 304829.79it/s]kuka_iiwa_14 FK:   5%|▍         | 91527/2000000 [00:00<00:06, 305812.86it/s]kuka_iiwa_14 FK:   6%|▌         | 122429/2000000 [00:00<00:06, 307071.85it/s]kuka_iiwa_14 FK:   8%|▊         | 153169/2000000 [00:00<00:06, 307185.00it/s]kuka_iiwa_14 FK:   9%|▉         | 184011/2000000 [00:00<00:05, 307598.25it/s]kuka_iiwa_14 FK:  11%|█         | 214771/2000000 [00:00<00:05, 307505.45it/s]kuka_iiwa_14 FK:  12%|█▏        | 245522/2000000 [00:00<00:05, 306021.71it/s]kuka_iiwa_14 FK:  14%|█▍        | 276126/2000000 [00:00<00:05, 305709.84it/s]kuka_iiwa_14 FK:  15%|█▌        | 306698/2000000 [00:01<00:05, 298263.43it/s]kuka_iiwa_14 FK:  17%|█▋        | 337331/2000000 [00:01<00:05, 300682.78it/s]kuka_iiwa_14 FK:  18%|█▊        | 368038/2000000 [00:01<00:05, 302596.14it/s]kuka_iiwa_14 FK:  20%|█▉        | 398744/2000000 [00:01<00:05, 303932.28it/s]kuka_iiwa_14 FK:  21%|██▏       | 429299/2000000 [00:01<00:05, 304415.16it/s]kuka_iiwa_14 FK:  23%|██▎       | 459990/2000000 [00:01<00:05, 305159.87it/s]kuka_iiwa_14 FK:  25%|██▍       | 490580/2000000 [00:01<00:04, 305378.95it/s]kuka_iiwa_14 FK:  26%|██▌       | 521315/2000000 [00:01<00:04, 305968.19it/s]kuka_iiwa_14 FK:  28%|██▊       | 552026/2000000 [00:01<00:04, 306307.77it/s]kuka_iiwa_14 FK:  29%|██▉       | 582661/2000000 [00:01<00:04, 306232.91it/s]kuka_iiwa_14 FK:  31%|███       | 613342/2000000 [00:02<00:04, 306403.46it/s]kuka_iiwa_14 FK:  32%|███▏      | 644039/2000000 [00:02<00:04, 306570.20it/s]kuka_iiwa_14 FK:  34%|███▎      | 674781/2000000 [00:02<00:04, 306823.01it/s]kuka_iiwa_14 FK:  35%|███▌      | 705465/2000000 [00:02<00:04, 306690.44it/s]kuka_iiwa_14 FK:  37%|███▋      | 736135/2000000 [00:02<00:04, 305867.18it/s]kuka_iiwa_14 FK:  38%|███▊      | 766723/2000000 [00:02<00:04, 304817.27it/s]kuka_iiwa_14 FK:  40%|███▉      | 797206/2000000 [00:02<00:03, 303697.33it/s]kuka_iiwa_14 FK:  41%|████▏     | 827584/2000000 [00:02<00:03, 303717.98it/s]kuka_iiwa_14 FK:  43%|████▎     | 857957/2000000 [00:02<00:03, 302167.92it/s]kuka_iiwa_14 FK:  44%|████▍     | 888312/2000000 [00:02<00:03, 302576.40it/s]kuka_iiwa_14 FK:  46%|████▌     | 918572/2000000 [00:03<00:03, 302471.10it/s]kuka_iiwa_14 FK:  47%|████▋     | 948821/2000000 [00:03<00:03, 299917.78it/s]kuka_iiwa_14 FK:  49%|████▉     | 979153/2000000 [00:03<00:03, 300926.48it/s]kuka_iiwa_14 FK:  50%|█████     | 1009250/2000000 [00:03<00:03, 292084.71it/s]kuka_iiwa_14 FK:  52%|█████▏    | 1038514/2000000 [00:03<00:03, 289442.57it/s]kuka_iiwa_14 FK:  53%|█████▎    | 1068093/2000000 [00:03<00:03, 291296.81it/s]kuka_iiwa_14 FK:  55%|█████▍    | 1098101/2000000 [00:03<00:03, 293884.26it/s]kuka_iiwa_14 FK:  56%|█████▋    | 1128336/2000000 [00:03<00:02, 296390.24it/s]kuka_iiwa_14 FK:  58%|█████▊    | 1157997/2000000 [00:03<00:02, 289198.04it/s]kuka_iiwa_14 FK:  59%|█████▉    | 1188587/2000000 [00:03<00:02, 294089.14it/s]kuka_iiwa_14 FK:  61%|██████    | 1219117/2000000 [00:04<00:02, 297395.33it/s]kuka_iiwa_14 FK:  62%|██████▏   | 1249463/2000000 [00:04<00:02, 299190.76it/s]kuka_iiwa_14 FK:  64%|██████▍   | 1279815/2000000 [00:04<00:02, 300475.73it/s]kuka_iiwa_14 FK:  65%|██████▌   | 1309884/2000000 [00:04<00:02, 300502.76it/s]kuka_iiwa_14 FK:  67%|██████▋   | 1339949/2000000 [00:04<00:02, 299464.01it/s]kuka_iiwa_14 FK:  68%|██████▊   | 1369907/2000000 [00:04<00:02, 297412.69it/s]kuka_iiwa_14 FK:  70%|██████▉   | 1399658/2000000 [00:04<00:02, 296977.18it/s]kuka_iiwa_14 FK:  71%|███████▏  | 1429363/2000000 [00:04<00:01, 292889.84it/s]kuka_iiwa_14 FK:  73%|███████▎  | 1458704/2000000 [00:04<00:01, 293040.58it/s]kuka_iiwa_14 FK:  74%|███████▍  | 1488019/2000000 [00:04<00:01, 292432.07it/s]kuka_iiwa_14 FK:  76%|███████▌  | 1517663/2000000 [00:05<00:01, 293621.88it/s]kuka_iiwa_14 FK:  77%|███████▋  | 1547671/2000000 [00:05<00:01, 295544.70it/s]kuka_iiwa_14 FK:  79%|███████▉  | 1577366/2000000 [00:05<00:01, 295962.44it/s]kuka_iiwa_14 FK:  80%|████████  | 1606967/2000000 [00:05<00:01, 294820.90it/s]kuka_iiwa_14 FK:  82%|████████▏ | 1636960/2000000 [00:05<00:01, 296343.72it/s]kuka_iiwa_14 FK:  83%|████████▎ | 1666712/2000000 [00:05<00:01, 296693.58it/s]kuka_iiwa_14 FK:  85%|████████▍ | 1696907/2000000 [00:05<00:01, 298265.11it/s]kuka_iiwa_14 FK:  86%|████████▋ | 1726810/2000000 [00:05<00:00, 298490.01it/s]kuka_iiwa_14 FK:  88%|████████▊ | 1757174/2000000 [00:05<00:00, 300029.18it/s]kuka_iiwa_14 FK:  89%|████████▉ | 1787179/2000000 [00:05<00:00, 292103.12it/s]kuka_iiwa_14 FK:  91%|█████████ | 1817530/2000000 [00:06<00:00, 295456.74it/s]kuka_iiwa_14 FK:  92%|█████████▏| 1847526/2000000 [00:06<00:00, 296785.73it/s]kuka_iiwa_14 FK:  94%|█████████▍| 1877532/2000000 [00:06<00:00, 297751.13it/s]kuka_iiwa_14 FK:  95%|█████████▌| 1907952/2000000 [00:06<00:00, 299668.43it/s]kuka_iiwa_14 FK:  97%|█████████▋| 1938452/2000000 [00:06<00:00, 301258.30it/s]kuka_iiwa_14 FK:  98%|█████████▊| 1968768/2000000 [00:06<00:00, 301823.13it/s]kuka_iiwa_14 FK: 100%|█████████▉| 1998959/2000000 [00:06<00:00, 301061.42it/s]kuka_iiwa_14 FK: 100%|██████████| 2000000/2000000 [00:06<00:00, 300073.88it/s]
+time = 6667.101 ms
+Saved 2000000 samples to /home/kye/high-dimenstional-self-motion-manifold-approximation/assets/7R/kuka_iiwa_14/7r_pose.npz
