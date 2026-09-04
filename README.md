@@ -24,3 +24,9 @@ you can see that all samples from flow-matching model lie on the correct SMMs co
 |------|-------|-------------|
 |`iiwa_7r_pose.py`|![image info](figures/kuka.gif)|generative ik solutions|
 |`panda_7r_pose.py`|![image info](figures/panda.gif)|generative ik solutions|
+
+## Self-Motion Manifold
+| File | Video | Description |
+|------|-------|-------------|
+|`iiwa_self_motion.py`|![image info](figures/kuka_smm.gif)|sampling from 1-D SMM curves|
+|`panda_self_motion.py`|![image info](figures/panda_smm.gif)|sampling from 1-D SMM curves|
