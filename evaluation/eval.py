@@ -11,6 +11,7 @@ overall evaluation of robots:
 import time
 import numpy as np
 import argparse
+import json
 # for 3R 
 from spatialmath import SE3
 
@@ -487,6 +488,12 @@ if __name__ == "__main__":
         metrics['err_fourier'] = ep_fourier.mean()
         metrics['inference_speed_fm'] = t_fourier
 
+        # save dict as json
+        json_path = f"evaluation/{args.robot_name}_{args.task}.eval_metrics.json"
+        with open(json_path, "w") as f:
+            json.dump(metrics, f, indent=4)
+        print(f"evaluation results saved to {json_path}")
+
         # print(f"metrics:\n {metrics}")
         print()
         print("metrics:")
@@ -668,6 +675,12 @@ if __name__ == "__main__":
         print("metrics:")
         for k, v in metrics.items():
             print(f"{k}: {v:.6e}")
+
+        # save dict as json
+        json_path = f"evaluation/{args.robot_name}_{args.task}.eval_metrics.json"
+        with open(json_path, "w") as f:
+            json.dump(metrics, f, indent=4)
+        print(f"evaluation results saved to {json_path}")
 
         # plot
         fig_path = f"evaluation/{args.robot_name}_{args.task}.png"

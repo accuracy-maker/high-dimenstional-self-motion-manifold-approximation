@@ -26,14 +26,14 @@ for entry in "${ROBOTS[@]}"; do
     task="${entry##*:}"
 
     if [[ "$STAGE" == "data" || "$STAGE" == "all" ]]; then
-        python -m assets.data_generation --robot "$robot" >> "$LOG_FILE" 2>&1
+        python -m assets.data_generation --robot "$robot" >> "$LOG_FILE"
     fi
 
     if [[ "$STAGE" == "train" || "$STAGE" == "all" ]]; then
-        python -m training.train --robot_name "$robot" >> "$LOG_FILE" 2>&1
+        python -m training.train --robot_name "$robot" >> "$LOG_FILE"
     fi
 
     if [[ "$STAGE" == "eval" || "$STAGE" == "all" ]]; then
-        python -m evaluation.eval --robot_name "$robot" --task "$task" >> "$LOG_FILE" 2>&1
+        python -m evaluation.eval --robot_name "$robot" --task "$task" >> "$LOG_FILE"
     fi
 done

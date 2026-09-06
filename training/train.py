@@ -2,9 +2,12 @@
 
 import numpy as np
 import argparse
+from sklearn import metrics
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from model.flow_matching import FMConfig, FlowMatching, load_data, DataLoader
+import time
+import json
 
 import torch
 import torch.nn as nn
@@ -46,9 +49,17 @@ def train(cfg: FMConfig) -> FlowMatching:
 
     best_val = float("inf")
 
-    # training
+    train_metrics = {
+        "train_time": 0.0,
+        "train_loss": [],
+        "valid_loss": [],
+    }
+
+    t_s = time.time()
+
     for epoch in tqdm(range(cfg.n_epochs)):
         fm.model.train()
+
         train_loss = 0.0
         n_train = 0
 
@@ -68,6 +79,7 @@ def train(cfg: FMConfig) -> FlowMatching:
         sched.step()
 
         fm.model.eval()
+
         val_loss = 0.0
         n_val = 0
 
@@ -84,15 +96,22 @@ def train(cfg: FMConfig) -> FlowMatching:
         train_loss /= n_train
         val_loss /= n_val
 
+        train_metrics["train_loss"].append(train_loss)
+        train_metrics["valid_loss"].append(val_loss)
+
         if val_loss < best_val:
             best_val = val_loss
             fm.save()
 
-        # if epoch % 10 == 0 or epoch == cfg.n_epochs - 1:
-        #     print(
-        #         f"epoch {epoch:4d} | train {train_loss:.4f} "
-        #         f"| val {val_loss:.4f} | best {best_val:.4f}"
-        #     )
+    t_train = time.time() - t_s
+    train_metrics["train_time"] = t_train
+
+    # save dict as json
+    json_path = f"training/{cfg.robot_name}.train_metrics.json"
+    with open(json_path, "w") as f:
+        json.dump(train_metrics, f, indent=4)
+    print(f"training metrics saved to {json_path}")
+
 
     fm.load()
     return fm

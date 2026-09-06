@@ -18,6 +18,11 @@ assets/kuka_iiwa_14
 # fourier checkpoints
 model/fourier_smm/results
 
+# evaluation png and json
+evaluation/*.png
+evaluation/*.json
+
+
 # Optional: OS/editor files
 .DS_Store
 Thumbs.db

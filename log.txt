@@ -1,71 +1,9 @@
-root path: /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm
-FM configs are loaded
-Robot configs are loaded
+training on the device: cuda
 data is loaded from /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/3R/planar3r.npz
-model loaded
-pos err mean: 8.834452447803468e-11
-ODE inference time per sample: 0.16369
-FM inference time per sample: 0.36487
-Fourier inference time per sample: 0.01771
-
-metrics:
-ep_ode: 2.944817e-11
-ep_fm: 1.405193e-03
-ep_fourier: 5.126812e-03
-eo_ode: 0.000000e+00
-eo_fm: 0.000000e+00
-eo_fourier: 0.000000e+00
-err_ode: 2.944817e-11
-err_fm: 1.405193e-03
-err_fourier: 5.126812e-03
-inference_speed_ode: 1.636870e-01
-inference_speed_fm: 1.770759e-02
-inference_speed_fourier: 0.000000e+00
-root path: /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm
-FM configs are loaded
-Robot configs are loaded
+training metrics saved to training/3R.train_metrics.json
+training on the device: cuda
 data is loaded from /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/7R/franka_emika_panda/7r_pose.npz
-model loaded
-franka_emika_panda FK:   0%|          | 0/1966 [00:00<?, ?it/s]franka_emika_panda FK: 100%|██████████| 1966/1966 [00:00<00:00, 417223.32it/s]
-time = 5.753 ms
-ODE inference time per sample: 7.12656
-FM inference time per sample: 0.54645
-Fourier inference time per sample: 0.04944
-
-metrics:
-ep_ode: 4.228194e-12
-ep_fm: 6.253343e-03
-ep_fourier: 1.336626e-01
-eo_ode: 2.362238e-08
-eo_fm: 1.407653e-02
-eo_fourier: 7.494783e-01
-err_ode: 1.181331e-08
-err_fm: 1.016494e-02
-err_fourier: 4.415704e-01
-inference_speed_ode: 7.126564e+00
-inference_speed_fm: 4.943991e-02
-inference_speed_fourier: 0.000000e+00
-root path: /home/haitao/high-dimenstional-self-motion-manifold-approximation/model/fourier_smm
-FM configs are loaded
-Robot configs are loaded
+training metrics saved to training/franka_emika_panda.train_metrics.json
+training on the device: cuda
 data is loaded from /home/haitao/high-dimenstional-self-motion-manifold-approximation/assets/7R/kuka_iiwa_14/7r_pose.npz
-model loaded
-kuka_iiwa_14 FK:   0%|          | 0/1154 [00:00<?, ?it/s]kuka_iiwa_14 FK: 100%|██████████| 1154/1154 [00:00<00:00, 420596.70it/s]
-time = 3.727 ms
-ODE inference time per sample: 8.19168
-FM inference time per sample: 0.30305
-Fourier inference time per sample: 0.03387
-
-metrics:
-ep_ode: 2.359547e-12
-ep_fm: 1.081596e-02
-ep_fourier: 1.992953e-01
-eo_ode: 2.467442e-08
-eo_fm: 1.707617e-02
-eo_fourier: 4.697292e-01
-err_ode: 1.233839e-08
-err_fm: 1.394606e-02
-err_fourier: 3.345123e-01
-inference_speed_ode: 8.191682e+00
-inference_speed_fm: 3.387046e-02
-inference_speed_fourier: 0.000000e+00
+training metrics saved to training/kuka_iiwa_14.train_metrics.json
