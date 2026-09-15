@@ -2,7 +2,12 @@
 Test single and batched planar 3R manipulator
 """
 
-from robots.planar3r import planar3r, planar3r_links, TASKSPACE
+# from robots.planar3r import planar3r, planar3r_links, TASKSPACE
+from fourier_smm.robots.planar3r import (
+    planar3r,
+    planar3r_links,
+    TASKSPACE,
+)
 
 import numpy as np
 
@@ -24,6 +29,7 @@ Q = rng.uniform(-np.pi, np.pi, (20, 3))
 
 section("kinematics")
 ref = rtb.models.DH.Planar3()
+print(ref)
 e_fk = max(np.abs(ref.fkine(q).A - bk.fk(q[None])[0]).max() for q in Q)
 e_J = max(np.abs(ref.jacob0(q) - bk.jacobian(q[None])[0]).max() for q in Q)
 print(f"max |FK  - rtb.models.Panda|    = {e_fk:.2e}")

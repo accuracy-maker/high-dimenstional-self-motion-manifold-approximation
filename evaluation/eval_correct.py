@@ -9,9 +9,11 @@ overall evaluation of robots:
 """
 
 import time
+from dataclasses import dataclass
 import numpy as np
 import argparse
 import json
+import mujoco
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 # for 3R 
@@ -37,15 +39,250 @@ from assets.data_generation import RobotConfig, get_robot_config
 from assets.data_generation import mujoco_fk
 
 
+def numerical_position_jacobian(robot_cfg, q, eps=1e-6):
+    q = np.asarray(q, dtype=np.float64)
+    J = np.zeros((3, q.size), dtype=np.float64)
+    for j in range(q.size):
+        qp, qm = q.copy(), q.copy()
+        qp[j] += eps
+        qm[j] -= eps
+        xp = forward_kinematics(robot_cfg, qp[None, :])[0, :3]
+        xm = forward_kinematics(robot_cfg, qm[None, :])[0, :3]
+        J[:, j] = (xp - xm) / (2.0 * eps)
+    return J
+
+
+# def jacobian_position_correct(robot_cfg, qs, target_pos,
+#                               iters=3, lam=1e-3, eps=1e-6):
+#     """Apply three damped-least-squares position corrections."""
+#     qs = np.array(qs, dtype=np.float64, copy=True)
+#     target_pos = np.asarray(target_pos, dtype=np.float64)
+#     eye = np.eye(2 if robot_cfg.backend == "rtb" else 3)
+
+#     for _ in range(iters):
+#         for i in range(len(qs)):
+#             q = qs[i]
+#             current = forward_kinematics(robot_cfg, q[None, :])[0]
+
+#             if robot_cfg.backend == "rtb":
+#                 current = current[:2]
+#                 J = np.asarray(robot_cfg.robot.jacob0(q))[:2, :]
+#             elif robot_cfg.backend == "mujoco":
+#                 current = current[:3]
+#                 J = numerical_position_jacobian(robot_cfg, q, eps)
+#             else:
+#                 raise ValueError(f"Unsupported backend: {robot_cfg.backend}")
+
+#             e = target_pos - current
+#             JJt = J @ J.T + (lam ** 2) * eye
+#             qs[i] += J.T @ np.linalg.solve(JJt, e)
+#     return qs
+
+
+def jacobian_position_correct(
+    robot_cfg,
+    qs,
+    target_pos,
+    iters=3,
+    lam=1e-3,
+):
+    """
+    Batched damped-least-squares position correction for Planar3R.
+
+    qs:
+        Shape (N, 3)
+
+    target_pos:
+        Shape (2,)
+    """
+
+    qs = np.array(
+        qs,
+        dtype=np.float64,
+        copy=True,
+    )
+
+    target_pos = np.asarray(
+        target_pos,
+        dtype=np.float64,
+    )
+
+    if qs.ndim != 2 or qs.shape[1] != 3:
+        raise ValueError(
+            f"Expected qs with shape (N, 3), got {qs.shape}."
+        )
+
+    if target_pos.shape != (2,):
+        raise ValueError(
+            f"Expected target_pos with shape (2,), "
+            f"got {target_pos.shape}."
+        )
+
+    # Planar3R link lengths
+    a = np.asarray(
+        robot_cfg.robot.a,
+        dtype=np.float64,
+    )
+
+    a1, a2, a3 = a[:3]
+
+    identity = np.eye(2)
+
+    for iteration in range(iters):
+
+        q1 = qs[:, 0]
+        q2 = qs[:, 1]
+        q3 = qs[:, 2]
+
+        q12 = q1 + q2
+        q123 = q1 + q2 + q3
+
+        s1 = np.sin(q1)
+        c1 = np.cos(q1)
+
+        s12 = np.sin(q12)
+        c12 = np.cos(q12)
+
+        s123 = np.sin(q123)
+        c123 = np.cos(q123)
+
+        # Batched planar FK
+        x_current = (
+            a1 * c1
+            + a2 * c12
+            + a3 * c123
+        )
+
+        y_current = (
+            a1 * s1
+            + a2 * s12
+            + a3 * s123
+        )
+
+        current_position = np.stack(
+            [
+                x_current,
+                y_current,
+            ],
+            axis=1,
+        )
+
+        # Batched analytical position Jacobian, shape (N, 2, 3)
+        J = np.empty(
+            (qs.shape[0], 2, 3),
+            dtype=np.float64,
+        )
+
+        J[:, 0, 0] = (
+            -a1 * s1
+            -a2 * s12
+            -a3 * s123
+        )
+
+        J[:, 1, 0] = (
+            a1 * c1
+            +a2 * c12
+            +a3 * c123
+        )
+
+        J[:, 0, 1] = (
+            -a2 * s12
+            -a3 * s123
+        )
+
+        J[:, 1, 1] = (
+            a2 * c12
+            +a3 * c123
+        )
+
+        J[:, 0, 2] = -a3 * s123
+        J[:, 1, 2] = a3 * c123
+
+        # Batched position error, shape (N, 2)
+        error = (
+            target_pos[None, :]
+            - current_position
+        )
+
+        # Batched damped least-squares solve
+        JJt = J @ J.transpose(0, 2, 1)
+
+        JJt += (lam**2) * identity[None, :, :]
+
+        dq = (
+            J.transpose(0, 2, 1)
+            @ np.linalg.solve(
+                JJt,
+                error[:, :, None],
+            )
+        )[:, :, 0]
+
+        qs += dq
+
+        print(
+            f"Completed Planar3R correction "
+            f"iteration {iteration + 1}/{iters}",
+            flush=True,
+        )
+
+    return qs
+
+def _rotation_log(R):
+    theta = np.arccos(np.clip((np.trace(R) - 1.0) / 2.0, -1.0, 1.0))
+    v = np.array([R[2, 1] - R[1, 2], R[0, 2] - R[2, 0], R[1, 0] - R[0, 1]])
+    if theta < 1e-8:
+        return 0.5 * v
+    return theta * v / (2.0 * np.sin(theta))
+
+
+def mujoco_pose_correct(robot_cfg, qs, target_pose, iters=3, lam=1e-3):
+    """Fast full-pose DLS correction using MuJoCo's analytical Jacobian."""
+    model = robot_cfg.robot
+    data = mujoco.MjData(model)
+    qpos_ids = [model.jnt_qposadr[jid] for jid in robot_cfg._jnt_ids]
+    dof_ids = [model.jnt_dofadr[jid] for jid in robot_cfg._jnt_ids]
+    target_R = rotation_from_6d_rows(target_pose[3:9])
+    I6 = np.eye(6)
+    qs = np.array(qs, dtype=np.float64, copy=True)
+    for iteration in range(iters):
+        for i, q in enumerate(qs):
+            data.qpos[:] = 0.0
+            data.qpos[qpos_ids] = q
+            mujoco.mj_forward(model, data)
+            jp = np.zeros((3, model.nv))
+            jr = np.zeros((3, model.nv))
+            if robot_cfg.ee_type == "site":
+                ee_id = model.site(robot_cfg.ee_name).id
+                mujoco.mj_jacSite(model, data, jp, jr, ee_id)
+                pos = data.site_xpos[ee_id].copy()
+                R = data.site_xmat[ee_id].reshape(3, 3).copy()
+            else:
+                ee_id = model.body(robot_cfg.ee_name).id
+                mujoco.mj_jacBody(model, data, jp, jr, ee_id)
+                pos = data.xpos[ee_id].copy()
+                R = data.xmat[ee_id].reshape(3, 3).copy()
+            J = np.vstack((jp[:, dof_ids], jr[:, dof_ids]))
+            e = np.concatenate((target_pose[:3] - pos, _rotation_log(target_R @ R.T)))
+            qs[i] += J.T @ np.linalg.solve(J @ J.T + lam**2 * I6, e)
+        print(f"Completed pose correction iteration {iteration + 1}/{iters}", flush=True)
+    return qs
+
+
 def forward_kinematics(robot_cfg, qs: np.ndarray) -> np.ndarray:
     """(N, x_dim) task-space FK with the same backend that generated the data"""
 
+    qs = np.asarray(qs, dtype=np.float64)
+    if qs.ndim == 1:
+        qs = qs[None, :]
+
     if robot_cfg.backend == "mujoco":
-        return mujoco_fk(qs, robot_cfg)
+        return np.asarray(mujoco_fk(qs, robot_cfg), dtype=np.float64)
 
     if robot_cfg.backend == "rtb":
-        T = np.array(robot_cfg.robot.fkine(qs).A)
-        return T[:, :2, 3]  # planar 3R: (N, 2)
+        return np.asarray(
+            [robot_cfg.robot.fkine(q).A[:2, 3] for q in qs],
+            dtype=np.float64,
+        )
 
     raise ValueError(f"Invalid backend: {robot_cfg.backend}")
 
@@ -108,6 +345,24 @@ def plot_all_methods(
         Fourier samples + ODE curves
     """
 
+    # Times for the figure text, to match the paper body font.  Times New
+    # Roman is absent on Linux, so fall back to its metric-compatible clones
+    # rather than silently landing on DejaVu; "stix" gives the theta labels
+    # matching Times-style math.
+    plt.rcParams.update({
+        "font.family": "serif",
+        "font.serif": [
+            "Times New Roman",
+            "Nimbus Roman",
+            "Liberation Serif",
+            "Times",
+            "DejaVu Serif",
+        ],
+        "mathtext.fontset": "stix",
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
+    })
+
     joint_indices = list(joint_indices)
     n = len(joint_indices)
 
@@ -119,8 +374,8 @@ def plot_all_methods(
         squeeze=False,
     )
 
-    fm_qs_wrapped = wrap_to_pi(fm_qs)
-    fourier_qs_wrapped = wrap_to_pi(fourier_qs)
+    fm_qs_wrapped = wrap_pi(fm_qs)
+    fourier_qs_wrapped = wrap_pi(fourier_qs)
 
     for row in range(n):
         for col in range(n):
@@ -155,7 +410,7 @@ def plot_all_methods(
                     s=22,
                     marker="o",
                     color="tab:blue",
-                    alpha=0.45,
+                    alpha=0.55,
                     linewidths=0.5,
                     edgecolors="none",
                 )
@@ -179,7 +434,7 @@ def plot_all_methods(
             if row == n - 1:
                 ax.set_xlabel(
                     rf"$\theta_{{{joint_x + 1}}}$",
-                    fontsize=18,
+                    fontsize=30,
                 )
             else:
                 ax.tick_params(
@@ -191,7 +446,7 @@ def plot_all_methods(
             if col == 0:
                 ax.set_ylabel(
                     rf"$\theta_{{{joint_y + 1}}}$",
-                    fontsize=18,
+                    fontsize=30,
                 )
             else:
                 ax.tick_params(
@@ -199,9 +454,12 @@ def plot_all_methods(
                     labelleft=False,
                 )
 
+            # Hide the numeric tick values; the theta axis labels carry the
+            # meaning and the panels only need to show the manifold shape.
             ax.tick_params(
                 axis="both",
-                labelsize=14,
+                labelbottom=False,
+                labelleft=False,
             )
 
             ax.grid(
@@ -218,7 +476,7 @@ def plot_all_methods(
             linestyle="None",
             markerfacecolor="tab:blue",
             markeredgecolor="none",
-            markersize=10,
+            markersize=16,
             alpha=0.8,
             label="FM samples",
         ),
@@ -226,7 +484,7 @@ def plot_all_methods(
             [0],
             [0],
             color="tab:orange",
-            linewidth=4.0,
+            linewidth=6.0,
             alpha=0.8,
             label="ODE SMM",
         ),
@@ -236,8 +494,8 @@ def plot_all_methods(
             marker="x",
             linestyle="None",
             color="tab:green",
-            markersize=11,
-            markeredgewidth=2.0,
+            markersize=17,
+            markeredgewidth=3.0,
             alpha=0.8,
             label="Fourier samples",
         ),
@@ -248,7 +506,7 @@ def plot_all_methods(
         loc="upper center",
         ncol=3,
         bbox_to_anchor=(0.5, 0.98),
-        fontsize=18,
+        fontsize=28,
         frameon=True,
         fancybox=False,
         framealpha=1.0,
@@ -347,6 +605,15 @@ if __name__ == "__main__":
         "err_ode": 0.0,
         "err_fm": 0.0,
         "err_fourier": 0.0,
+        # corrected FM metrics
+        "ep_c": 0.0,
+        "eo_c": 0.0,
+        "err_c": 0.0,
+        "correction_time": 0.0,
+        "ep_fourier_c": 0.0,
+        "eo_fourier_c": 0.0,
+        "err_fourier_c": 0.0,
+        "fourier_correction_time": 0.0,
 
         # inference speed
         "inference_speed_ode": 0.0,
@@ -403,6 +670,7 @@ if __name__ == "__main__":
         # fm
         t_fm_s = time.time()
         qs = fm.sample(x, n_samples=2000, n_steps=100)
+        t_fm = time.time() - t_fm_s
         qs_wrapped = wrap_pi(qs)
         qs_keep, keep_frac = filter_samples(
             qs = qs_wrapped,
@@ -412,7 +680,7 @@ if __name__ == "__main__":
         )
         labels, k, gap = cluster_torus(qs_keep, eps = 1.0)
 
-        t_fm = time.time() - t_fm_s
+        
 
         T_pred = np.array(robot_cfg.robot.fkine(qs_keep).A)
         # print(f"T_pred shape: {T_pred.shape}")
@@ -420,9 +688,25 @@ if __name__ == "__main__":
         ep_fm = np.linalg.norm(T_pred[:, :2, 3] - x[:2], axis=-1)
         ep_fm = ep_fm.mean() / robot_cfg.x_max
 
+        t_c_s = time.time()
+        qs_corrected = jacobian_position_correct(
+            robot_cfg, qs_keep, x[:2], iters=3
+        )
+        t_c = time.time() - t_c_s
+        T_corrected = np.asarray(
+            robot_cfg.robot.fkine(qs_corrected).A
+        )
+        ep_c = np.linalg.norm(
+            T_corrected[:, :2, 3] - x[:2], axis=-1
+        ).mean() / robot_cfg.x_max
+
         metrics['ep_fm'] = ep_fm
         metrics['err_fm'] = ep_fm
         metrics['inference_speed_fm'] = t_fm
+        metrics['ep_c'] = ep_c
+        metrics['eo_c'] = 0.0
+        metrics['err_c'] = ep_c
+        metrics['correction_time'] = t_c
 
         # fourier
         bundle = SMMNetworkBundle.load(
@@ -449,15 +733,100 @@ if __name__ == "__main__":
         )
 
         robot = fourier_taskcfg.get_robot
+
+
         T_target = np.asarray(T.A)
+
+        T_fourier_targets = np.repeat(
+            T_target[None, :, :],
+            qs_fourier.shape[0],
+            axis=0,
+        )
+
+        # Uncorrected Fourier metrics
         ep_fourier, _ = robot.bk.fk_error_pct(
-                qs_fourier,
-                T_target[None,:,:]
+            qs_fourier,
+            T_fourier_targets,
+        )
+
+        metrics["ep_fourier"] = ep_fourier.mean()
+        metrics["eo_fourier"] = 0.0
+        metrics["err_fourier"] = metrics["ep_fourier"]
+        metrics["inference_speed_fourier"] = t_fourier
+
+
+        # ------------------------------------------------------
+        # Fourier position-only correction for Planar3R
+        # ------------------------------------------------------
+
+        t_fourier_c_s = time.time()
+
+        qs_fourier_corrected = np.array(
+            qs_fourier,
+            dtype=np.float64,
+            copy=True,
+        )
+
+        target_position = T_target[:2, 3]
+
+        for _ in range(3):
+
+            T_current = robot.bk.fk(
+                qs_fourier_corrected,
             )
 
-        metrics['ep_fourier'] = ep_fourier.mean()
-        metrics['err_fourier'] = ep_fourier.mean()
-        metrics['inference_speed_fourier'] = t_fourier
+            current_position = T_current[:, :2, 3]
+
+            J_full = robot.bk.jacobian(
+                qs_fourier_corrected,
+            )
+
+            # Planar3R uses only x/y position rows
+            J_position = J_full[:, :2, :]
+
+            position_error = (
+                target_position[None, :]
+                - current_position
+            )
+
+            JJt = (
+                J_position
+                @ J_position.transpose(0, 2, 1)
+            )
+
+            JJt[:, 0, 0] += 1e-3**2
+            JJt[:, 1, 1] += 1e-3**2
+
+            dq = (
+                J_position.transpose(0, 2, 1)
+                @ np.linalg.solve(
+                    JJt,
+                    position_error[:, :, None],
+                )
+            )[:, :, 0]
+
+            qs_fourier_corrected += dq
+
+        t_fourier_c = time.time() - t_fourier_c_s
+
+
+        # Corrected Fourier position error
+        T_fourier_corrected = robot.bk.fk(
+            qs_fourier_corrected,
+        )
+
+        ep_fourier_c = np.linalg.norm(
+            T_fourier_corrected[:, :2, 3]
+            - target_position[None, :],
+            axis=1,
+        ) / robot.bk.L
+
+        metrics["ep_fourier_c"] = ep_fourier_c.mean()
+
+        # Planar3R has no orientation task
+        metrics["eo_fourier_c"] = 0.0
+        metrics["err_fourier_c"] = metrics["ep_fourier_c"]
+        metrics["fourier_correction_time"] = t_fourier_c
 
         # save dict as json
         json_path = f"evaluation/{args.robot_name}_{args.task}.eval_metrics.json"
@@ -547,6 +916,7 @@ if __name__ == "__main__":
         # fm
         t_fm_s = time.time()
         qs = fm.sample(x, n_samples=2000, n_steps=100)
+        t_fm = time.time() - t_fm_s
         qs_wrapped = wrap_pi(qs)
         qs_keep, keep_frac = filter_samples(
             qs = qs_wrapped,
@@ -556,9 +926,7 @@ if __name__ == "__main__":
         )
     
         labels, k, gap = cluster_torus(qs_keep, eps = 1.0)
-
-        t_fm = time.time() - t_fm_s
-
+        
         xs = forward_kinematics(robot_cfg, qs_keep)
         ep_fm = np.linalg.norm(
                 xs[:, :3] - x[:3],
@@ -566,6 +934,16 @@ if __name__ == "__main__":
             )
         
         ep_fm = ep_fm.mean() / robot_cfg.x_max
+
+        t_c_s = time.time()
+        qs_corrected = mujoco_pose_correct(
+            robot_cfg, qs_keep, x, iters=3
+        )
+        t_c = time.time() - t_c_s
+        xs_corrected = forward_kinematics(robot_cfg, qs_corrected)
+        ep_c = np.linalg.norm(
+            xs_corrected[:, :3] - x[:3], axis=1
+        ).mean() / robot_cfg.x_max
 
         # eo 
         
@@ -598,10 +976,23 @@ if __name__ == "__main__":
 
         eo_fm = eo_fm.mean() / np.pi
 
+        R_pred_c = rotation_from_6d_rows(xs_corrected[:, 3:9])
+        R_error_c = R.T @ R_pred_c
+        cos_angle_c = (
+            np.trace(R_error_c, axis1=1, axis2=2) - 1.0
+        ) / 2.0
+        eo_c = np.mean(
+            np.arccos(np.clip(cos_angle_c, -1.0, 1.0))
+        ) / np.pi
+
         metrics['ep_fm'] = ep_fm
         metrics['eo_fm'] = eo_fm
         metrics['err_fm'] = 0.5 * (ep_fm + eo_fm)
         metrics['inference_speed_fm'] = t_fm
+        metrics['ep_c'] = ep_c
+        metrics['eo_c'] = eo_c
+        metrics['err_c'] = 0.5 * (ep_c + eo_c)
+        metrics['correction_time'] = t_c
         
 
         # fourier
@@ -637,6 +1028,23 @@ if __name__ == "__main__":
 
         metrics['err_fourier'] = 0.5 * (metrics['ep_fourier'] + metrics['eo_fourier'])
         metrics["inference_speed_fourier"] = t_fourier
+
+        T_fourier_targets = np.repeat(
+            T_target[None, :, :], qs_fourier.shape[0], axis=0
+        )
+        t_fourier_c_s = time.time()
+        qs_fourier_corrected = robot.bk.ik_correct(
+            qs_fourier, T_fourier_targets, iters=3, lam=1e-3
+        )
+        metrics['fourier_correction_time'] = time.time() - t_fourier_c_s
+        ep_fc, eo_fc = robot.bk.fk_error_pct(
+            qs_fourier_corrected, T_fourier_targets
+        )
+        metrics['ep_fourier_c'] = ep_fc.mean()
+        metrics['eo_fourier_c'] = eo_fc.mean()
+        metrics['err_fourier_c'] = 0.5 * (
+            metrics['ep_fourier_c'] + metrics['eo_fourier_c']
+        )
 
         print(f"ODE inference time per sample: {t_ode:.5f}")
         print(f"FM inference time per sample: {t_fm:.5f}")

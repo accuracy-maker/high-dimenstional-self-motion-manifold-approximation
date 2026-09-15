@@ -34,6 +34,6 @@ for entry in "${ROBOTS[@]}"; do
     fi
 
     if [[ "$STAGE" == "eval" || "$STAGE" == "all" ]]; then
-        python -m evaluation.eval --robot_name "$robot" --task "$task" >> "$LOG_FILE"
+        python -m evaluation.eval_correct --robot_name "$robot" --task "$task" >> "$LOG_FILE"
     fi
 done

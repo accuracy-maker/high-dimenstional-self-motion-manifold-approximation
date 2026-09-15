@@ -90,11 +90,11 @@ def train(cfg: FMConfig) -> FlowMatching:
             best_val = val_loss
             fm.save()
 
-        # if epoch % 10 == 0 or epoch == cfg.n_epochs - 1:
-        #     print(
-        #         f"epoch {epoch:4d} | train {train_loss:.4f} "
-        #         f"| val {val_loss:.4f} | best {best_val:.4f}"
-        #     )
+        if epoch % 10 == 0 or epoch == cfg.n_epochs - 1:
+            print(
+                f"epoch {epoch:4d} | train {train_loss:.4f} "
+                f"| val {val_loss:.4f} | best {best_val:.4f}"
+            )
 
     fm.load()
     return fm
