@@ -22,3 +22,12 @@ There is also a way to compute 4-D SMMs analytically. The main idea is:
 
 We can smaple various $R$ from $SO(3)$ and repeat above algorithm. An example is shown in the figure
 ![4dsmm](tests/figures/analytic_4d_smm.png)
+
+## Comparison with FM method in 4-D SMMs
+we compare the samples from analytic IK solution with all 8 branches with samples from learned IK model
+
+![4d-smm-theta67-plane](tests/figures/fm_vs_analytic_4d_branches_joint_projection.png)
+
+Quantitatively, it is
+
+![4d-smm-stats](tests/figures/fm_vs_analytic_4d_branches.png)
