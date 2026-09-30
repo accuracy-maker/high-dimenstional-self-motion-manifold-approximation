@@ -859,6 +859,8 @@ if __name__ == "__main__":
         )
         T[:3,:3] =R
 
+        print(f"test pose:\n {T}")
+
         # ode
         ode_cfg = ODEConfig()
         t_ode_s = time.time()
