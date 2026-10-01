@@ -33,3 +33,9 @@ we compare the samples from analytic IK solution with all 8 branches with sample
 Quantitatively, it is
 
 ![4d-smm-stats](tests/figures/fm_vs_analytic_4d_branches.png)
+
+## Acknowledgement
+The main references I used in this folder are:
+- Position-based kinematics for 7-DoF serial manipulators with global configuration control, joint limit and singularity avoidance
+
+- https://github.com/cohnt/constraint-manifold-charts-ift
