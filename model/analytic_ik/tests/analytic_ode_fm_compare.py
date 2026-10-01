@@ -1,12 +1,17 @@
-"""Compare unlimited and joint-limited analytical SMMs with an ODE SMM.
+"""Compare ODE, analytical IK, and Flow Matching SMM samples.
 
-The figure uses a complete 7-by-7 joint-pair matrix:
+The pair plot uses a complete 7-by-7 joint-pair matrix:
 
-    lower triangle: ODE SMM + unlimited analytical IK
-    upper triangle: ODE SMM + joint-limited analytical IK
+    lower triangle: ODE SMM + unlimited analytical IK samples
+    upper triangle: ODE SMM + joint-limited analytical IK +
+                    full-pose-corrected FM samples
     diagonal:       hidden
 
-The ODE continuation is deliberately unchanged and remains unconstrained.
+The ODE continuation remains unchanged and unconstrained.  The FM model is
+loaded with ``FMConfig(robot_name="kuka_iiwa_14")`` and is conditioned on
+the same end-effector pose used by the analytical IK and ODE computations.
+FM configurations are corrected with the full-pose MuJoCo DLS correction,
+including both translational and rotational errors.
 """
 
 from collections import defaultdict
@@ -16,9 +21,31 @@ from itertools import product
 import matplotlib.pyplot as plt
 import numpy as np
 
-from model.analytic_ik.analytic_ik_7dof import Analytical_IK_7DoF
-from model.ode import *  # noqa: F401,F403
+from evaluation.eval_7r_4d import wrap_to_pi
+from evaluation.eval_correct import mujoco_pose_correct
 from evaluation.eval_3r_ode import wrapped_curve_for_plot
+from model.analytic_ik.analytic_ik_7dof import Analytical_IK_7DoF
+from model.flow_matching import FMConfig, FlowMatching, load_data
+from model.ode import *  # noqa: F401,F403
+
+
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
+
+
+ROBOT_NAME = "kuka_iiwa_14"
+FM_SAMPLE_COUNT = 50_000
+FM_INTEGRATION_STEPS = 100
+FM_CORRECTION_ITERS = 3
+FM_CORRECTION_LAMBDA = 1e-3
+ANALYTICAL_PSI_COUNT = 4000
+PLOT_FM_MAX_POINTS = 30_000
+
+
+# ---------------------------------------------------------------------------
+# Frame conversion
+# ---------------------------------------------------------------------------
 
 
 T_7_SITE = np.array(
@@ -33,6 +60,8 @@ T_7_SITE = np.array(
 
 
 def site_pose_to_dh_pose(T_site):
+    """Convert a MuJoCo site pose to analytical DH frame 7."""
+
     T_site = np.asarray(T_site, dtype=float)
     if T_site.shape != (4, 4):
         raise ValueError(f"Expected shape (4, 4), got {T_site.shape}.")
@@ -40,10 +69,25 @@ def site_pose_to_dh_pose(T_site):
 
 
 def dh_pose_to_site_pose(T_dh):
+    """Convert analytical DH frame-7 pose to a MuJoCo site pose."""
+
     T_dh = np.asarray(T_dh, dtype=float)
     if T_dh.shape != (4, 4):
         raise ValueError(f"Expected shape (4, 4), got {T_dh.shape}.")
     return T_dh @ T_7_SITE
+
+
+# ---------------------------------------------------------------------------
+# General utilities
+# ---------------------------------------------------------------------------
+
+
+def to_numpy(value):
+    """Convert NumPy or torch values to a NumPy float array."""
+
+    if hasattr(value, "detach"):
+        value = value.detach().cpu().numpy()
+    return np.asarray(value, dtype=np.float64)
 
 
 def torus_delta(q1, q2):
@@ -62,6 +106,42 @@ def pose_errors(T1, T2):
     position_error = np.linalg.norm(T1[:3, 3] - T2[:3, 3])
     rotation_error = np.linalg.norm(T1[:3, :3] - T2[:3, :3])
     return float(position_error), float(rotation_error)
+
+
+def fm_condition_from_pose(position, rotation, x_dim):
+    """Construct the FM condition used by the first comparison script."""
+
+    position = np.asarray(position, dtype=float)
+    rotation = np.asarray(rotation, dtype=float)
+
+    if x_dim == 3:
+        return position
+
+    if x_dim == 9:
+        return np.concatenate([position, rotation[:2].reshape(6)])
+
+    raise ValueError(
+        "This comparison expects an FM conditioning dimension of 3 or 9; "
+        f"received x_dim={x_dim}."
+    )
+
+
+def subsample_rows(qs, max_points, seed=0):
+    """Deterministically reduce a large point cloud for plotting."""
+
+    qs = np.asarray(qs, dtype=float)
+    if len(qs) <= max_points:
+        return qs
+
+    rng = np.random.default_rng(seed)
+    indices = rng.choice(len(qs), size=max_points, replace=False)
+    indices.sort()
+    return qs[indices]
+
+
+# ---------------------------------------------------------------------------
+# Joint limits and analytical IK
+# ---------------------------------------------------------------------------
 
 
 def sample_feasible_configuration(ik, rng, interior_fraction=0.10):
@@ -147,7 +227,7 @@ def get_all_ik_samples(
     pose_tolerance=1e-5,
     joint_limit_tolerance=1e-8,
 ):
-    """Sample all analytical IK branches for one target pose."""
+    """Sample all analytical GC branches for one fixed target pose."""
 
     T_target = np.asarray(T_target, dtype=float)
     if T_target.shape != (4, 4):
@@ -265,9 +345,9 @@ def get_all_ik_samples(
     return solutions
 
 
-def group_analytic_solutions(ik_solutions):
+def group_analytic_solutions(solutions):
     branches = defaultdict(list)
-    for solution in ik_solutions:
+    for solution in solutions:
         GC = tuple(np.asarray(solution["GC"], dtype=int))
         branches[GC].append(solution)
 
@@ -293,46 +373,131 @@ def print_branch_comparison(solutions_unlimited, solutions_limited):
         )
 
 
-def print_closure_diagnostics(solutions, title):
-    print(title)
-    for GC, branch in group_analytic_solutions(solutions).items():
-        q = np.asarray([item["q"] for item in branch], dtype=float)
-        if len(q) < 2:
-            print(f"  GC={GC}: only {len(q)} sample(s)")
-            continue
+# ---------------------------------------------------------------------------
+# Flow Matching sampling
+# ---------------------------------------------------------------------------
 
-        print(
-            f"  GC={GC}: samples={len(q)}, "
-            f"psi=[{branch[0]['psi']:.4f}, {branch[-1]['psi']:.4f}], "
-            f"torus endpoint distance={torus_distance(q[0], q[-1]):.6e}"
+
+def sample_fm_configurations(
+    fm_cfg,
+    fm_robot_cfg,
+    ik_solver,
+    T_site_target,
+    *,
+    n_samples=FM_SAMPLE_COUNT,
+    n_steps=FM_INTEGRATION_STEPS,
+    correction_iters=FM_CORRECTION_ITERS,
+    enforce_joint_limits=True,
+):
+    """Generate full-pose-corrected FM samples for the same target pose."""
+
+    train, test, norm = load_data(fm_cfg)
+    del train, test
+
+    fm = FlowMatching(fm_cfg, norm)
+    fm.load()
+
+    if fm_robot_cfg.x_dim != 9:
+        raise ValueError(
+            "For a fixed end-effector-pose comparison, the FM model must "
+            f"use x_dim=9, but robot '{ROBOT_NAME}' uses "
+            f"x_dim={fm_robot_cfg.x_dim}."
         )
 
+    target_position = np.asarray(T_site_target[:3, 3], dtype=float)
+    target_rotation = np.asarray(T_site_target[:3, :3], dtype=float)
+    condition = fm_condition_from_pose(
+        target_position,
+        target_rotation,
+        fm_robot_cfg.x_dim,
+    )
 
-def plot_split_triangle_smm(
+    raw_q = to_numpy(
+        fm.sample(
+            condition,
+            n_samples=n_samples,
+            n_steps=n_steps,
+        )
+    )
+
+    if raw_q.ndim == 1:
+        raw_q = raw_q[None, :]
+    if raw_q.ndim != 2 or raw_q.shape[1] != 7:
+        raise ValueError(f"FM returned an invalid shape: {raw_q.shape}.")
+
+    raw_q = raw_q[np.all(np.isfinite(raw_q), axis=1)]
+
+    if len(raw_q) == 0:
+        return np.empty((0, 7), dtype=float)
+
+    # The condition is the 9-D pose representation expected by
+    # mujoco_pose_correct: position followed by the first two rows of R.
+    # This corrects translation and orientation simultaneously.
+    corrected_q = mujoco_pose_correct(
+        robot_cfg=fm_robot_cfg,
+        qs=raw_q,
+        target_pose=condition,
+        iters=correction_iters,
+        lam=FM_CORRECTION_LAMBDA,
+    )
+    corrected_q = to_numpy(corrected_q)
+    corrected_q = corrected_q[
+        np.all(np.isfinite(corrected_q), axis=1)
+    ]
+
+    if enforce_joint_limits:
+        lower = np.asarray(ik_solver.limits_lower, dtype=float)
+        upper = np.asarray(ik_solver.limits_upper, dtype=float)
+        mask = (
+            np.all(corrected_q >= lower[None, :] - 1e-8, axis=1)
+            & np.all(corrected_q <= upper[None, :] + 1e-8, axis=1)
+        )
+        corrected_q = corrected_q[mask]
+
+    return corrected_q
+
+
+# ---------------------------------------------------------------------------
+# Plotting
+# ---------------------------------------------------------------------------
+
+
+def plot_ode_analytic_fm(
     ode_components,
-    solutions_unlimited,
-    solutions_limited,
-    save_path="model/analytic_ik/tests/figures/ode_vs_analytic_split_triangles.png",
+    analytic_unlimited_solutions,
+    analytic_limited_solutions,
+    fm_q,
+    save_path=(
+        "model/analytic_ik/tests/figures/"
+        "ode_analytic_fm_full_pose_analytic_upper_split_triangles.png"
+    ),
 ):
-    """Plot all 21 joint pairs in both triangles of a 7-by-7 matrix."""
+    """Plot unlimited analytical IK below and limited IK+FM above."""
 
-    if len(solutions_unlimited) == 0:
-        raise ValueError("solutions_unlimited is empty.")
-    if len(solutions_limited) == 0:
-        raise ValueError("solutions_limited is empty.")
+    if len(analytic_unlimited_solutions) == 0:
+        raise ValueError("analytic_unlimited_solutions is empty.")
+    if len(analytic_limited_solutions) == 0:
+        raise ValueError("analytic_limited_solutions is empty.")
+    if len(fm_q) == 0:
+        raise ValueError("fm_q is empty.")
 
-    unlimited_branches = group_analytic_solutions(solutions_unlimited)
-    limited_branches = group_analytic_solutions(solutions_limited)
+    unlimited_branches = group_analytic_solutions(
+        analytic_unlimited_solutions
+    )
+    limited_branches = group_analytic_solutions(
+        analytic_limited_solutions
+    )
+    fm_q = subsample_rows(fm_q, PLOT_FM_MAX_POINTS)
+    fm_q = wrap_to_pi(fm_q)
+
     ode_qs = []
-
     for component in ode_components:
         q = np.asarray(component.q, dtype=float)
         if q.ndim != 2 or q.shape[1] != 7:
             raise ValueError("Each ODE component.q must have shape (N, 7).")
         ode_qs.append(wrapped_curve_for_plot(q))
 
-    # This must be 7 x 7.  A 6 x 7 layout omits upper-triangle pairs
-    # involving theta_1.
+    # A full 7-by-7 grid is necessary for 21 pairs in each triangle.
     fig, axes = plt.subplots(
         7,
         7,
@@ -361,7 +526,8 @@ def plot_split_triangle_smm(
                 ax.axis("off")
                 continue
 
-            # The ODE remains the same full unconstrained SMM in both halves.
+            # ODE is shown in both triangles and is always the full
+            # unconstrained continuous SMM.
             for q_ode in ode_qs:
                 ax.plot(
                     q_ode[:, joint_x],
@@ -373,30 +539,50 @@ def plot_split_triangle_smm(
                 )
 
             if joint_y > joint_x:
-                branches = unlimited_branches
-                color = "tab:blue"
-                size = 8
-                alpha = 0.60
-            else:
-                branches = limited_branches
-                color = "tab:red"
-                size = 10
-                alpha = 0.80
+                # Lower triangle: unlimited analytical IK.
+                for branch in unlimited_branches.values():
+                    q_analytic = np.asarray(
+                        [item["q"] for item in branch],
+                        dtype=float,
+                    )
+                    if len(q_analytic) == 0:
+                        continue
 
-            for branch in branches.values():
-                q_analytic = np.asarray(
-                    [item["q"] for item in branch],
-                    dtype=float,
-                )
-                if len(q_analytic) == 0:
-                    continue
+                    ax.scatter(
+                        q_analytic[:, joint_x],
+                        q_analytic[:, joint_y],
+                        color="tab:blue",
+                        s=8,
+                        alpha=0.60,
+                        edgecolors="none",
+                        zorder=2,
+                    )
+            else:
+                # Upper triangle: joint-limited analytical IK and FM.
+                for branch in limited_branches.values():
+                    q_analytic = np.asarray(
+                        [item["q"] for item in branch],
+                        dtype=float,
+                    )
+                    if len(q_analytic) == 0:
+                        continue
+
+                    ax.scatter(
+                        q_analytic[:, joint_x],
+                        q_analytic[:, joint_y],
+                        color="tab:red",
+                        s=8,
+                        alpha=0.60,
+                        edgecolors="none",
+                        zorder=2,
+                    )
 
                 ax.scatter(
-                    q_analytic[:, joint_x],
-                    q_analytic[:, joint_y],
-                    color=color,
-                    s=size,
-                    alpha=alpha,
+                    fm_q[:, joint_x],
+                    fm_q[:, joint_y],
+                    color="tab:green",
+                    s=2,
+                    alpha=0.18,
                     edgecolors="none",
                     zorder=2,
                 )
@@ -418,16 +604,19 @@ def plot_split_triangle_smm(
     legend_ax = axes[0, 1]
     legend_ax.plot([], [], color="tab:orange", linewidth=2.0, label="ODE SMM")
     legend_ax.scatter(
-        [], [], color="tab:blue", s=25, label="Analytical IK (unlimited)"
+        [], [], color="tab:blue", s=25, label="Unlimited analytical IK"
     )
     legend_ax.scatter(
-        [], [], color="tab:red", s=25, label="Analytical IK (joint limits)"
+        [], [], color="tab:red", s=25, label="Joint-limited analytical IK"
+    )
+    legend_ax.scatter(
+        [], [], color="tab:green", s=25, label="FM samples"
     )
 
     fig.text(
         0.04,
         0.925,
-        "Lower triangle: unlimited analytical IK",
+        "Lower triangle: ODE + unlimited analytical IK",
         color="tab:blue",
         fontsize=13,
         ha="left",
@@ -436,7 +625,7 @@ def plot_split_triangle_smm(
     fig.text(
         0.96,
         0.925,
-        "Upper triangle: joint-limited analytical IK",
+        "Upper triangle: ODE + limited analytical IK + FM",
         color="tab:red",
         fontsize=13,
         ha="right",
@@ -446,7 +635,7 @@ def plot_split_triangle_smm(
     fig.legend(
         loc="upper center",
         bbox_to_anchor=(0.50, 0.965),
-        ncol=3,
+        ncol=4,
         fontsize=13,
         frameon=True,
     )
@@ -473,22 +662,27 @@ class ODEConfig:
 
 
 if __name__ == "__main__":
-    robot_cfg = get_robot_config(robot_name="kuka_iiwa_14")
+    robot_cfg = get_robot_config(robot_name=ROBOT_NAME)
+    fm_cfg = FMConfig(robot_name=ROBOT_NAME)
+    fm_robot_cfg = fm_cfg.load_robot
     ode_cfg = ODEConfig()
     ik_solver = Analytical_IK_7DoF()
 
+    # Use the same deterministic feasible target as the analytical/ODE
+    # comparison.  The target is generated from q0, not from an unconstrained
+    # IK solution of a separately specified pose.
     rng = np.random.default_rng(42)
     q0 = sample_feasible_configuration(
-        ik_solver,
-        rng,
+        ik=ik_solver,
+        rng=rng,
         interior_fraction=0.10,
     )
 
+    print("robot name:", ROBOT_NAME)
     print("feasible desired q:\n", q0)
     print("analytical lower limits:\n", ik_solver.limits_lower)
     print("analytical upper limits:\n", ik_solver.limits_upper)
 
-    # One exact common target pose for both analytical cases and the ODE.
     T_site_target = np.asarray(target(robot_cfg, q0), dtype=float)
     T_target_dh = site_pose_to_dh_pose(T_site_target)
 
@@ -512,7 +706,7 @@ if __name__ == "__main__":
             "Check T_7_SITE and the DH parameters."
         )
 
-    # Keep the ODE exactly as before: no joint-limit filtering is passed here.
+    # ODE remains unchanged and unconstrained.
     seeds = generate_ik_seeds(
         robot_cfg=robot_cfg,
         x=T_site_target,
@@ -543,7 +737,7 @@ if __name__ == "__main__":
     psi_samples = np.linspace(
         -np.pi,
         np.pi,
-        4000,
+        ANALYTICAL_PSI_COUNT,
         endpoint=False,
     )
 
@@ -556,7 +750,7 @@ if __name__ == "__main__":
         verbose=True,
     )
 
-    print("\nSampling joint-limited analytical IK...")
+    print("\nSampling joint-limited analytical IK for diagnostics...")
     solutions_limited = get_all_ik_samples(
         ik_solver,
         T_target_dh,
@@ -566,34 +760,48 @@ if __name__ == "__main__":
     )
 
     print(
-        "\nTotal analytical samples: "
+        "\nAnalytical samples: "
         f"unlimited={len(solutions_unlimited)}, "
         f"joint-limited={len(solutions_limited)}, "
         f"removed={len(solutions_unlimited) - len(solutions_limited)}"
     )
 
     print_branch_comparison(solutions_unlimited, solutions_limited)
-    print_closure_diagnostics(
-        solutions_unlimited,
-        "\nUnlimited analytical branches:",
-    )
-    print_closure_diagnostics(
-        solutions_limited,
-        "\nJoint-limited analytical branches:",
+
+    print("\nLoading and sampling Flow Matching...")
+    fm_q = sample_fm_configurations(
+        fm_cfg=fm_cfg,
+        fm_robot_cfg=fm_robot_cfg,
+        ik_solver=ik_solver,
+        T_site_target=T_site_target,
+        n_samples=FM_SAMPLE_COUNT,
+        n_steps=FM_INTEGRATION_STEPS,
+        correction_iters=FM_CORRECTION_ITERS,
+        enforce_joint_limits=True,
     )
 
+    print(
+        "Full-pose-corrected FM samples retained: "
+        f"{len(fm_q)}"
+    )
+
+    if len(solutions_unlimited) == 0:
+        raise RuntimeError("No unlimited analytical samples were generated.")
     if len(solutions_limited) == 0:
-        raise RuntimeError("No analytical solutions survived joint limits.")
+        raise RuntimeError("No joint-limited analytical samples were generated.")
+    if len(fm_q) == 0:
+        raise RuntimeError("No FM samples were retained.")
 
     output_path = (
         "model/analytic_ik/tests/figures/"
-        "ode_vs_analytic_split_triangles.png"
+        "ode_analytic_fm.png"
     )
 
-    plot_split_triangle_smm(
-        components,
-        solutions_unlimited,
-        solutions_limited,
+    plot_ode_analytic_fm(
+        ode_components=components,
+        analytic_unlimited_solutions=solutions_unlimited,
+        analytic_limited_solutions=solutions_limited,
+        fm_q=fm_q,
         save_path=output_path,
     )
 

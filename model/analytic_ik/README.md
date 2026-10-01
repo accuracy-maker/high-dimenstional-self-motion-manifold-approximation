@@ -8,10 +8,12 @@ this figure comes from the [paper](https://www.sciencedirect.com/science/article
 ## Analytic IK solver
 The implementation is in the folder `analytic_ik/analytic_ik_7dof.py` which used a lot of code based on Cohn's [github repo](https://github.com/cohnt/constraint-manifold-charts-ift).
 
-## Comparison with ODE method
-without joint limits, ODE method matches analytical IK solutions parameterised by $\psi$ shown in the following figure
+## Comparison with ODE and Flow-matching Methods
+without joint limits, ODE method matches analytical IK solutions parameterised by $\psi$ shown in the following figure. Considering joint limits, those samples from FM and analytic solver should cover a subset of closed 1-D curve.
 
-![ode_analytic](tests/figures/ode_vs_analytic.png).
+![ode_analytic](tests/figures/ode_analytic_fm.png).
+
+Above figure shows that FM sample perfectly mathches analytic solutions **which means FM learned the correct limit constraints.** 
 
 ## 4-D SMM
 There is also a way to compute 4-D SMMs analytically. The main idea is:
