@@ -123,7 +123,8 @@ class VelocityField(nn.Module):
         self.time_emb = TimeEmbedding(cfg.time_emb_dim)
 
         in_dim = robot.q_dim + cfg.time_emb_dim + robot.x_dim
-        # print(f"robot.x_dim: {robot.x_dim}")
+        print(f"robot.q_dim: {robot.q_dim}")
+        print(f"robot.x_dim: {robot.x_dim}")
 
         layers = [nn.Linear(in_dim, cfg.hidden_dim), nn.SiLU()]
         for _ in range(cfg.n_layers - 1):

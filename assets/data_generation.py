@@ -65,7 +65,11 @@ class RobotConfig:
     def q_dim(self) -> int:
         if self.backend == "rtb":
             return self.robot.n
-        return len(self.joint_names)
+        # return len(self.joint_names)
+        if self.backend == "mujoco":
+            return self.robot.nv
+
+        raise ValueError(f"Unknown backend: {self.backend}")
 
     @property
     def x_dim(self) -> int:
@@ -137,6 +141,17 @@ ROBOT_CONFIGS = {
         ee_type="site",
         ee_name="attachment_site",
     ),
+    "franka_tdcr": RobotConfig(
+        name="franka_tdcr",
+        backend="mujoco",
+        robot=mujoco.MjModel.from_xml_path(str(ROOT_PATH / "opencr-mujoco" / "assets" / "example_three_segment_franka_franka_scene.xml")),
+        xml_path=ROOT_PATH / "opencr-mujoco" / "assets" / "example_three_segment_franka_franka_scene.xml",
+        save_path=ROOT_PATH / "franka_tdcr" / "franka_tdcr_dataset.npz",
+        task="pose",
+        x_max = 1.6,
+        ee_type="body",
+        ee_name="EE_pos"
+    )
 }
 
 
