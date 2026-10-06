@@ -38,7 +38,7 @@ class FMConfig:
     lr: float = 1e-3
     weight_decay: float = 1e-5
     batch_size: int = 1024
-    n_epochs: int = 200
+    n_epochs: int = 500
     n_ode_steps: int = 100
     test_size: float = 0.1
 

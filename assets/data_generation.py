@@ -28,61 +28,321 @@ import roboticstoolbox as rtb
 from scipy.stats import qmc
 from tqdm import tqdm
 
+# for franka tdcr
+import re
+
 ROOT_PATH = Path(__file__).resolve().parents[0]
 
+# for franka tdcr
+TDCR_JOINT_PATTERN = re.compile(
+    r"^joint_\d+_.+$"
+)
 
 @dataclass(frozen=True)
 class RobotConfig:
     name: str
-    backend: str                 # "rtb" | "mujoco"
-    robot: object                # rtb robot or mujoco MjModel
+    backend: str
+    robot: object
     save_path: Path
-    task: str                    # "planar", "position", "pose"
+    task: str
     x_max: float
-    # mujoco backend only
+
     xml_path: Path | None = None
-    joint_names: tuple = ()      # joints sampled in q (subset of model.nq)
-    ee_type: str = "site"        # "site" | "body"
+
+    # Used for ordinary joint-coordinate robots.
+    joint_names: tuple[str, ...] = ()
+
+    ee_type: str = "site"
     ee_name: str = "attachment_site"
 
+    # "joint"       : ordinary MuJoCo joint representation
+    # "panda_clark" : 7 Panda joints + 2 Clark coordinates per TDCR segment
+    q_representation: str = "joint"
+
+    # Used by the reduced Panda + TDCR representation.
+    panda_joint_names: tuple[str, ...] = ()
+    clark_num_segments: int = 3
+    clark_tendon_distance_mm: float = 4.0
+
+    # For ordinary TDCR joints this is the artificial hinge limit.
+    # For Clark coordinates this is the maximum bending angle.
+    tdcr_limit_deg: float = 45.0
+
+    def _ids_from_names(
+        self,
+        names: tuple[str, ...],
+    ) -> list[int]:
+        """Convert MuJoCo joint names to joint IDs."""
+
+        joint_ids = []
+
+        for name in names:
+            joint_id = mujoco.mj_name2id(
+                self.robot,
+                mujoco.mjtObj.mjOBJ_JOINT,
+                name,
+            )
+
+            if joint_id < 0:
+                raise ValueError(
+                    f"Joint '{name}' was not found in the MuJoCo model."
+                )
+
+            joint_ids.append(int(joint_id))
+
+        return joint_ids
+
     @property
-    def _jnt_ids(self) -> list:
-        return [self.robot.joint(n).id for n in self.joint_names]
+    def _panda_jnt_ids(self) -> list[int]:
+        """Return the seven Panda joint IDs."""
+
+        if self.panda_joint_names:
+            names = self.panda_joint_names
+        else:
+            names = tuple(
+                f"panda_joint{i}"
+                for i in range(1, 8)
+            )
+
+        joint_ids = self._ids_from_names(names)
+
+        if len(joint_ids) != 7:
+            raise ValueError(
+                "The reduced Panda-Clark representation requires "
+                "exactly seven Panda joints."
+            )
+
+        return joint_ids
+
+    @property
+    def _jnt_ids(self) -> list[int]:
+        """
+        Return physical MuJoCo joint IDs.
+
+        For panda_clark, this returns only the Panda joint IDs.
+        Clark coordinates are not MuJoCo joints, so they do not have
+        MuJoCo joint IDs.
+        """
+
+        if self.backend == "rtb":
+            return []
+
+        if self.backend != "mujoco":
+            raise ValueError(
+                f"Invalid backend: {self.backend}"
+            )
+
+        if self.q_representation == "panda_clark":
+            return self._panda_jnt_ids
+
+        if self.q_representation != "joint":
+            raise ValueError(
+                f"Unknown q representation: "
+                f"{self.q_representation}"
+            )
+
+        # Explicitly specified joint representation.
+        if self.joint_names:
+            joint_ids = self._ids_from_names(
+                self.joint_names
+            )
+
+        else:
+            # Automatic raw Panda + TDCR hinge representation.
+            joint_ids = []
+
+            for joint_id in range(self.robot.njnt):
+                joint_name = mujoco.mj_id2name(
+                    self.robot,
+                    mujoco.mjtObj.mjOBJ_JOINT,
+                    joint_id,
+                )
+
+                if joint_name is None:
+                    continue
+
+                is_hinge = (
+                    self.robot.jnt_type[joint_id]
+                    == mujoco.mjtJoint.mjJNT_HINGE
+                )
+
+                is_panda_joint = joint_name.startswith(
+                    "panda"
+                )
+
+                is_tdcr_joint = (
+                    TDCR_JOINT_PATTERN.match(
+                        joint_name
+                    )
+                    is not None
+                )
+
+                if (
+                    is_hinge
+                    and (
+                        is_panda_joint
+                        or is_tdcr_joint
+                    )
+                ):
+                    joint_ids.append(joint_id)
+
+        # Match MuJoCo qpos ordering.
+        joint_ids.sort(
+            key=lambda jid: self.robot.jnt_qposadr[jid]
+        )
+
+        return joint_ids
+
+    @property
+    def clark_radius_mm(self) -> float:
+        """Maximum radius of each Clark-coordinate disk."""
+
+        if self.q_representation != "panda_clark":
+            raise ValueError(
+                "Clark radius is only defined for panda_clark."
+            )
+
+        return (
+            self.clark_tendon_distance_mm
+            * np.deg2rad(self.tdcr_limit_deg)
+        )
+
+    @property
+    def _joint_limits(self) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Return bounds for the stored q representation.
+
+        For panda_clark, the Clark bounds are componentwise box bounds.
+        The actual valid Clark domain is a disk per segment.
+        """
+
+        if self.q_representation == "panda_clark":
+            lower = []
+            upper = []
+
+            # Panda joint limits.
+            for joint_id in self._panda_jnt_ids:
+                if not self.robot.jnt_limited[joint_id]:
+                    joint_name = mujoco.mj_id2name(
+                        self.robot,
+                        mujoco.mjtObj.mjOBJ_JOINT,
+                        joint_id,
+                    )
+
+                    raise ValueError(
+                        f"Panda joint '{joint_name}' has no limits."
+                    )
+
+                lo, hi = self.robot.jnt_range[joint_id]
+                lower.append(float(lo))
+                upper.append(float(hi))
+
+            # Clark-coordinate component bounds.
+            #
+            # These are only the enclosing square:
+            #
+            #     -radius <= c_x,c_y <= radius
+            #
+            # The true valid region is:
+            #
+            #     c_x^2 + c_y^2 <= radius^2
+            radius = self.clark_radius_mm
+
+            for _ in range(self.clark_num_segments):
+                lower.extend([-radius, -radius])
+                upper.extend([radius, radius])
+
+            return (
+                np.asarray(lower, dtype=float),
+                np.asarray(upper, dtype=float),
+            )
+
+        lower = []
+        upper = []
+
+        tdcr_limit = np.deg2rad(
+            self.tdcr_limit_deg
+        )
+
+        for joint_id in self._jnt_ids:
+            joint_name = mujoco.mj_id2name(
+                self.robot,
+                mujoco.mjtObj.mjOBJ_JOINT,
+                joint_id,
+            )
+
+            if self.robot.jnt_limited[joint_id]:
+                lo, hi = self.robot.jnt_range[joint_id]
+
+            elif (
+                joint_name is not None
+                and TDCR_JOINT_PATTERN.match(
+                    joint_name
+                ) is not None
+            ):
+                lo = -tdcr_limit
+                hi = tdcr_limit
+
+            else:
+                raise ValueError(
+                    f"No joint limits available for "
+                    f"'{joint_name}'."
+                )
+
+            lower.append(float(lo))
+            upper.append(float(hi))
+
+        return (
+            np.asarray(lower, dtype=float),
+            np.asarray(upper, dtype=float),
+        )
 
     @property
     def q_min(self) -> np.ndarray:
         if self.backend == "rtb":
             return self.robot.qlim[0]
-        return self.robot.jnt_range[self._jnt_ids, 0]
+
+        q_min, _ = self._joint_limits
+        return q_min
 
     @property
     def q_max(self) -> np.ndarray:
         if self.backend == "rtb":
             return self.robot.qlim[1]
-        return self.robot.jnt_range[self._jnt_ids, 1]
+
+        _, q_max = self._joint_limits
+        return q_max
 
     @property
     def q_dim(self) -> int:
         if self.backend == "rtb":
             return self.robot.n
-        # return len(self.joint_names)
-        if self.backend == "mujoco":
-            return self.robot.nv
 
-        raise ValueError(f"Unknown backend: {self.backend}")
+        if self.backend == "mujoco":
+            if self.q_representation == "panda_clark":
+                return 7 + 2 * self.clark_num_segments
+
+            return len(self._jnt_ids)
+
+        raise ValueError(
+            f"Invalid backend: {self.backend}"
+        )
 
     @property
     def x_dim(self) -> int:
         if self.task == "planar":
             return 2
 
-        elif self.task == "position":
+        if self.task == "position":
             return 3
 
-        elif self.task == "pose":
-            return 9 # x_dim = 9 doesn't mean workspace needs 7-D information, it's 6-D actually
-        else:
-            raise ValueError(f"Invalid task: {self.task}")
+        if self.task == "pose":
+            return 9
+
+        raise ValueError(
+            f"Invalid task: {self.task}"
+        )
+
 
 ROBOT_CONFIGS = {
     "3R": RobotConfig(
@@ -144,13 +404,40 @@ ROBOT_CONFIGS = {
     "franka_tdcr": RobotConfig(
         name="franka_tdcr",
         backend="mujoco",
-        robot=mujoco.MjModel.from_xml_path(str(ROOT_PATH / "opencr-mujoco" / "assets" / "example_three_segment_franka_franka_scene.xml")),
-        xml_path=ROOT_PATH / "opencr-mujoco" / "assets" / "example_three_segment_franka_franka_scene.xml",
-        save_path=ROOT_PATH / "franka_tdcr" / "franka_tdcr_dataset.npz",
+        robot=mujoco.MjModel.from_xml_path(
+            str(
+                ROOT_PATH
+                / "opencr-mujoco"
+                / "assets"
+                / "example_three_segment_franka_franka_scene.xml"
+            )
+        ),
+        xml_path=(
+            ROOT_PATH
+            / "opencr-mujoco"
+            / "assets"
+            / "example_three_segment_franka_franka_scene.xml"
+        ),
+        save_path=(
+            ROOT_PATH
+            / "franka_tdcr"
+            / "franka_tdcr_dataset.npz"
+        ),
         task="pose",
-        x_max = 1.6,
+        x_max=1.6,
+
+        # Correct TDCR tip definition
         ee_type="body",
-        ee_name="EE_pos"
+        ee_name="EE_pos",
+
+        q_representation="panda_clark",
+        panda_joint_names=tuple(
+            f"panda_joint{i}"
+            for i in range(1, 8)
+        ),
+        clark_num_segments=3,
+        clark_tendon_distance_mm=4.0,
+        tdcr_limit_deg=45.0,
     )
 }
 
