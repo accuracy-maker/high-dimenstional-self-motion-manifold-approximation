@@ -26,3 +26,6 @@ evaluation/*.json
 # Optional: OS/editor files
 .DS_Store
 Thumbs.db
+
+# virtual environment
+.venv
