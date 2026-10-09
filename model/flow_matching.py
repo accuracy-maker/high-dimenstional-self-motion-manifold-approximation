@@ -66,6 +66,8 @@ def load_data(cfg: FMConfig):
     # raw data
     qs = data['qs'].astype(np.float32)
     xs = data['xs'].astype(np.float32)
+    
+    print(f"qs shape: {qs.shape} | xs shape: {xs.shape}")
 
     # normalize
     q_c, q_h = stats(qs)

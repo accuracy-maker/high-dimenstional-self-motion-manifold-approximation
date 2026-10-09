@@ -128,5 +128,6 @@ if __name__ == "__main__":
 
 
     cfg = FMConfig(robot_name=args.robot_name)
+    print(f"cfg:\n {cfg}")
     fm = train(cfg)
 
