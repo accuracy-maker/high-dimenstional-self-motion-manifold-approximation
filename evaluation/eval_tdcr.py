@@ -113,22 +113,6 @@ def tdcr_fk(model, data, qs=None):
 
     # print(f"radii_mm: {radii_mm}")
     
-    kin = MultiSegmentTDCRKinematics(
-        n_tendons_per_segment=tendons_per_segment,
-        tendon_distances_mm=distances,
-        angle_offsets_rad_ccw=offsets,
-        max_bending_angles_rad = MAX_BENDING_ANGLE_RAD
-    )
-
-    key_id, pretension_ctrl = read_pretension_keyframe(model)
-
-    settle_steps = max(1, int(round(1.0 / model.opt.timestep)))
-    print(f"settle steps:\n {settle_steps}")
-
-    tip_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "EE_pos")
-
-    body_ids = get_body_ids(model)
-    
     # compute tdcr position and tip position for each sampled q
     positions = []
     # rng = np.random.default_rng(42)
@@ -265,91 +249,110 @@ def plot_clarke_coordinates(clarke_q, max_radii_mm):
 
     plt.show()
                
-MAX_BENDING_ANGLE_RAD = np.pi / 3
-robot_name = "tdcr_3segs"
 
-cfg = FMConfig(robot_name=robot_name)
-print(f"cfg:\n {cfg}")
-print()
+if __name__ == "__main__":
+    MAX_BENDING_ANGLE_RAD = np.pi / 3
+    robot_name = "tdcr_3segs"
 
-robot_cfg = cfg.load_robot
-print(f"robot config:\n {robot_cfg}")
-print()
+    cfg = FMConfig(robot_name=robot_name)
+    print(f"cfg:\n {cfg}")
+    print()
 
-xml_path = robot_cfg.xml_path
-print(f"xml path:\n {xml_path}")
+    robot_cfg = cfg.load_robot
+    print(f"robot config:\n {robot_cfg}")
+    print()
 
-# load model and data
-model = mujoco.MjModel.from_xml_path(str(xml_path))
-data = mujoco.MjData(model)  
+    xml_path = robot_cfg.xml_path
+    print(f"xml path:\n {xml_path}")
 
-actuator_ids, tendons_per_segment = find_tendon_actuators(model) 
-n_segments = len(tendons_per_segment)
+    # load model and data
+    model = mujoco.MjModel.from_xml_path(str(xml_path))
+    data = mujoco.MjData(model)  
 
-distances = [4.5, 4.5, 4.5]
-offsets = [-3.0589, -2.5615, -2.0506]
-distances = np.asarray(distances, dtype=float)
-offsets = np.asarray(offsets, dtype=float)
-# print(f"distances: {distances}\n",
-    # f"offsets: {offsets}")
+    actuator_ids, tendons_per_segment = find_tendon_actuators(model) 
+    n_segments = len(tendons_per_segment)
 
-radii_mm = distances * MAX_BENDING_ANGLE_RAD
+    distances = [4.5, 4.5, 4.5]
+    offsets = [-3.0589, -2.5615, -2.0506]
+    distances = np.asarray(distances, dtype=float)
+    offsets = np.asarray(offsets, dtype=float)
+    # print(f"distances: {distances}\n",
+        # f"offsets: {offsets}")
 
-# load dataset
-train, test, norm = load_data(cfg)
-print(f"norm:\n {norm}")
+    radii_mm = distances * MAX_BENDING_ANGLE_RAD
 
-# generate test samples
-test_targets = test.tensors[1].detach().cpu().numpy()
-test_targets = np.asarray(test_targets, dtype=np.float64)
+    kin = MultiSegmentTDCRKinematics(
+        n_tendons_per_segment=tendons_per_segment,
+        tendon_distances_mm=distances,
+        angle_offsets_rad_ccw=offsets,
+        max_bending_angles_rad = MAX_BENDING_ANGLE_RAD
+    )
 
-x_c = np.asarray(norm["x_c"], dtype=np.float64)
-x_h = np.asarray(norm["x_h"], dtype=np.float64)
-test_targets = test_targets * x_h + x_c
+    key_id, pretension_ctrl = read_pretension_keyframe(model)
 
-rng = np.random.default_rng(42)  # fixed seed for reproducibility
-num_targets = min(10, len(test_targets))
+    settle_steps = max(1, int(round(1.0 / model.opt.timestep)))
+    print(f"settle steps:\n {settle_steps}")
 
-random_indices = rng.choice(
-    len(test_targets),
-    size=num_targets,
-    replace=False,
-)
+    tip_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "EE_pos")
 
-test_targets = test_targets[random_indices]
-if test_targets.ndim == 1:
-    test_targets = test_targets[None, :]
-print(f"test targets shape: {test_targets.shape}")
-
-x = test_targets[0, :]
-print(f"true target position: {x}")
-
-# load fm model
-fm = FlowMatching(cfg, norm)
-fm.load()
-print(fm)
-
-qs = fm.sample(
-    x,
-    n_samples=20,
-    n_steps=100
-)
-# print(f"qs:\n {qs}")
-# plot_clarke_coordinates(
-#     qs,
-#     radii_mm,
-# )
+    body_ids = get_body_ids(model)
 
 
+    # load dataset
+    train, test, norm = load_data(cfg)
+    print(f"norm:\n {norm}")
 
-positions = tdcr_fk(model, data, qs)
-positions = np.asarray(positions)
-tip_positions = positions[:, -1, :]
-print(f"tip positions:\n {tip_positions}")
-        
-# compute FK accuracy
-target_errors = np.linalg.norm(tip_positions - x[None,:], axis=1)
-print(f"target_errors mean:\n {np.mean(target_errors)}")
+    # generate test samples
+    test_targets = test.tensors[1].detach().cpu().numpy()
+    test_targets = np.asarray(test_targets, dtype=np.float64)
 
-# plot position
-plot_positions(positions)
+    x_c = np.asarray(norm["x_c"], dtype=np.float64)
+    x_h = np.asarray(norm["x_h"], dtype=np.float64)
+    test_targets = test_targets * x_h + x_c
+
+    rng = np.random.default_rng(42)  # fixed seed for reproducibility
+    num_targets = min(10, len(test_targets))
+
+    random_indices = rng.choice(
+        len(test_targets),
+        size=num_targets,
+        replace=False,
+    )
+
+    test_targets = test_targets[random_indices]
+    if test_targets.ndim == 1:
+        test_targets = test_targets[None, :]
+    print(f"test targets shape: {test_targets.shape}")
+
+    x = test_targets[0, :]
+    print(f"true target position: {x}")
+
+    # load fm model
+    fm = FlowMatching(cfg, norm)
+    fm.load()
+    print(fm)
+
+    qs = fm.sample(
+        x,
+        n_samples=10,
+        n_steps=100
+    )
+    # print(f"qs:\n {qs}")
+    # plot_clarke_coordinates(
+    #     qs,
+    #     radii_mm,
+    # )
+
+
+
+    positions = tdcr_fk(model, data, qs)
+    positions = np.asarray(positions)
+    tip_positions = positions[:, -1, :]
+    print(f"tip positions:\n {tip_positions}")
+            
+    # compute FK accuracy
+    target_errors = np.linalg.norm(tip_positions - x[None,:], axis=1)
+    print(f"target_errors mean:\n {np.mean(target_errors)}")
+
+    # plot position
+    plot_positions(positions)

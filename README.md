@@ -45,3 +45,5 @@ For serial robotic manipulators such as KUKA iiwa 14, there is an parameterised 
 ![tdcr](figures/tdcr.png)
 
 This figure shows that the learned IK can sample various IK solutions that can reach the same target pose with mean error 0.00034 m (0.34 mm). 
+
+![image info](figures/tdcr_3r_smms.gif)
