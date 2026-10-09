@@ -39,4 +39,9 @@ It appears when 7DoF robot does positioning jobs
 |`panda_7r_4d_smm.py`|![image info](figures/panda_4d_smm.gif)|sampling from 4-D SMM curves|
 
 
+## Continuum Robot
+For serial robotic manipulators such as KUKA iiwa 14, there is an parameterised analytic IK solutions for it. Therefore, it is possible to enumerate the IK solutions for one fixed targer pose to compute the SMMs. However, continuum robots, it is difficult to come up with an analytic IK solution. This study case highlights the needs of learned SMM or learned IK in general. For example, one segment tendon driven continuum robot has 6 DoF and it is redundent if we do position-level task. 
 
+![tdcr](figures/tdcr.png)
+
+This figure shows that the learned IK can sample various IK solutions that can reach the same target pose with mean error 0.00034 m (0.34 mm). 
